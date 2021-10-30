@@ -1,7 +1,13 @@
 import Head from "next/head";
 import Image from "next/image";
-import styles from "../styles/Home.module.css";
-
+import IndexSlider from "../components/IndexSlider";
+import IndexCategories from "../components/IndexCategories";
+import IndexFeaturedItems from "../components/IndexFeaturedItems";
 export default function Home() {
-  return <></>;
+
+  return( <>
+  <IndexSlider/>
+  <IndexCategories/>
+  <IndexFeaturedItems/>
+  </>);
 }

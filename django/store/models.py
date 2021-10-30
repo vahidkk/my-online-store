@@ -2,21 +2,30 @@ from django.db import models
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 from mptt.models import MPTTModel, TreeForeignKey
+from django.utils.text import slugify
+import random
+import string
+
+def random_string_generator(size=4, chars=string.ascii_lowercase + string.digits):
+    return ''.join(random.choice(chars) for _ in range(size))
 
 
-class Category(MPTTModel):
+
+class Category(MPTTModel): 
     """
     Category Table implimented with MPTT.
     """
 
     name = models.CharField(
-        verbose_name=_("Category Name"),
+        ("Category Name"),
         help_text=_("Required and unique"),
         max_length=255,
         unique=True,
     )
-    slug = models.SlugField(verbose_name=_("Category safe URL"), max_length=255, unique=True)
-    parent = TreeForeignKey("self", on_delete=models.CASCADE, null=True, blank=True, related_name="children")
+    slug = models.SlugField(_("Category slug"), max_length=255, unique=True)
+    url=models.CharField(_("nested path to this category"), max_length=200,default=' ',null=True,blank=True)
+    paths=models.JSONField(_("list of ancestors"), default=list, null=True, blank=True )
+    parent = TreeForeignKey("self", on_delete=models.CASCADE, null=True, blank=True, related_name="nodes")
     is_active = models.BooleanField(default=True)
 
     class MPTTMeta:
@@ -30,11 +39,29 @@ class Category(MPTTModel):
         return reverse("store:category_list", args=[self.slug])
 
     def __str__(self):
-        return self.name
+        return str(self.name)
+    
+    def save(self,*args, **kwargs):
+      allData=Category.objects.all()
+      def get_slugs_ancestors(self):
+          listOfSlugs=[]
+          if self.parent_id:
+              i=self.parent_id
+              while isinstance(i, int)  :
+                  lastAncestorRow=allData.get(id=i)
+                  listOfSlugs.append(lastAncestorRow.slug)
+                  i=lastAncestorRow.parent_id
+          listOfSlugs.insert(0,self.slug)
+          return listOfSlugs[::-1]
+
+      allData=Category.objects.all()
+      self.paths=get_slugs_ancestors(self)
+      self.url='/'.join([str(x) for x in get_slugs_ancestors(self)])
+      super().save(*args, **kwargs)
 
 
 class ProductType(models.Model):
-    """
+    """ 
     ProductType Table will provide a list of the different types
     of products that are for sale.
     """
@@ -81,7 +108,7 @@ class Product(models.Model):
         max_length=255,
     )
     description = models.TextField(verbose_name=_("description"), help_text=_("Not Required"), blank=True)
-    slug = models.SlugField(max_length=255)
+    slug = models.SlugField(max_length=255,blank=True,default=None)
     regular_price = models.DecimalField(
         verbose_name=_("Regular price"),
         help_text=_("Maximum 999.99"),
@@ -111,6 +138,7 @@ class Product(models.Model):
     )
     created_at = models.DateTimeField(_("Created at"), auto_now_add=True, editable=False)
     updated_at = models.DateTimeField(_("Updated at"), auto_now=True)
+    
 
     class Meta:
         ordering = ("-created_at",)
@@ -123,6 +151,19 @@ class Product(models.Model):
     def __str__(self):
         return self.title
 
+    def save(self,*args, **kwargs):
+        currentSlug = slugify(self.title)
+        qs_exists = Product.objects.filter(slug=currentSlug).exists()
+        if qs_exists:
+            newSlug = "{slug}-{randstr}".format(
+                        slug=currentSlug,
+                        randstr=random_string_generator(size=4)
+                    )
+        else :
+            newSlug=currentSlug
+        self.slug=newSlug
+        super().save(*args, **kwargs)
+    
 
 class ProductSpecificationValue(models.Model):
     """
@@ -134,8 +175,8 @@ class ProductSpecificationValue(models.Model):
     specification = models.ForeignKey(ProductSpecification, on_delete=models.RESTRICT)
     value = models.CharField(
         verbose_name=_("value"),
-        help_text=_("Product specification value (maximum of 255 words"),
-        max_length=255,
+        help_text=_("Product specification value (maximum of 250 words"),
+        max_length=250,
     )
 
     class Meta:
@@ -158,8 +199,8 @@ class ProductImage(models.Model):
         default="images/default.png",
     )
     alt_text = models.CharField(
-        verbose_name=_("Alturnative text"),
-        help_text=_("Please add alturnative text"),
+        verbose_name=_("Alternative text"),
+        help_text=_("Please add alternative text"),
         max_length=255,
         null=True,
         blank=True,
@@ -171,3 +212,20 @@ class ProductImage(models.Model):
     class Meta:
         verbose_name = _("Product Image")
         verbose_name_plural = _("Product Images")
+
+class Comments(models.Model):
+    """
+    The Product Image table.
+    """
+
+    product=models.ForeignKey(Product, on_delete=models.CASCADE, related_name='comments')
+    text=models.TextField(verbose_name=_("comment"),blank=False)
+    created_at = models.DateTimeField(auto_now_add=True, editable=False)
+    updated_at = models.DateTimeField(auto_now=True) 
+    name=models.CharField(verbose_name=_("name"), max_length=50,blank=False)
+    email=models.EmailField(max_length=254,blank=False)
+    class Meta:
+        verbose_name = _("Comment")
+        verbose_name_plural = _("Comments")
+    def __str__(self):
+        return self.name

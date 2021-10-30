@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.contrib.admin.options import ModelAdmin
 
 # Register your models here.
 
@@ -11,10 +12,19 @@ from .models import (
     ProductSpecification,
     ProductSpecificationValue,
     ProductType,
+    Comments,
 )
+
+# class BookAdmin(admin.ModelAdmin):
+#   prepopulated_fields = {"slug": ("title",)}
+
+# admin.site.register(Book, BookAdmin)
+
+
 
 admin.site.register(Category, MPTTModelAdmin)
 
+admin.site.register(Comments)
 
 class ProductSpecificationInline(admin.TabularInline):
     model = ProductSpecification
@@ -41,3 +51,4 @@ class ProductAdmin(admin.ModelAdmin):
         ProductSpecificationValueInline,
         ProductImageInline,
     ]
+    prepopulated_fields = {"slug": ("title",)}
