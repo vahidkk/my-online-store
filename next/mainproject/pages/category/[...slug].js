@@ -281,7 +281,7 @@ function Home({ posts, categories }) {
                     </Link>
                   </li>
                 )}
-              </ul>   
+              </ul>
             </div>
           </div>
         </div>

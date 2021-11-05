@@ -1,12 +1,29 @@
-from django.urls import path 
-from . import views 
+from django.urls import path
+from django.urls.conf import include
+from rest_framework_nested import routers
+from . import views
+
+
 app_name = "store"
- 
-urlpatterns = [ 
-    path("api/", views.ProductListView.as_view(), name="store_home"),  
+
+urlpatterns = [
     path("api/category/", views.CategoryListView.as_view(), name="categories"),
-    path("api/<slug:slug>/", views.Product.as_view(), name="product"),    
-    path("api/category/<path:url>", views.CategoryItemView.as_view(), name="category_item"),
-    path("api/<slug:product__slug>/comments", views.CommentsRetrieveUpdateView.as_view(), name="commentsRetrieveUpdateView"),
-    path("api/comments", views.CommentsListView.as_view(), name="commentsListView"),
+    path(
+        "api/category/<path:url>",
+        views.CategoryItemView.as_view(),
+        name="category_item",
+    ),
 ]
+
+
+router = routers.DefaultRouter()
+router.register("api/products", views.ProductViewSet, basename="products")
+router.register("api/carts", views.CartViewSet)
+
+products_router = routers.NestedDefaultRouter(router, "api/products", lookup="product")
+products_router.register("reviews", views.ReviewViewSet, basename="product-reviews")
+
+carts_router = routers.NestedDefaultRouter(router, "api/carts", lookup="cart")
+carts_router.register("items", views.CartItemViewSet, basename="cart-items")
+
+urlpatterns = urlpatterns + router.urls + carts_router.urls + products_router.urls

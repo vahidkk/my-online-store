@@ -1,11 +1,14 @@
 from django.contrib import admin
 from django.contrib.admin.options import ModelAdmin
+from django.db.models.base import Model
 
 # Register your models here.
 
 from mptt.admin import MPTTModelAdmin
 
 from .models import (
+    CartItem,
+    Cart,
     Category,
     Product,
     ProductImage,
@@ -15,16 +18,11 @@ from .models import (
     Comments,
 )
 
-# class BookAdmin(admin.ModelAdmin):
-#   prepopulated_fields = {"slug": ("title",)}
-
-# admin.site.register(Book, BookAdmin)
-
-
 
 admin.site.register(Category, MPTTModelAdmin)
 
 admin.site.register(Comments)
+
 
 class ProductSpecificationInline(admin.TabularInline):
     model = ProductSpecification
@@ -52,3 +50,14 @@ class ProductAdmin(admin.ModelAdmin):
         ProductImageInline,
     ]
     prepopulated_fields = {"slug": ("title",)}
+
+
+class CartItemInline(admin.TabularInline):
+    model = CartItem
+
+
+@admin.register(Cart)
+class CartAdmin(admin.ModelAdmin):
+    inlines = [
+        CartItemInline,
+    ]

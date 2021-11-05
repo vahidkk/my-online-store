@@ -1,3 +1,4 @@
+from django.core.validators import MinValueValidator
 from django.db import models
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
@@ -5,16 +6,14 @@ from mptt.models import MPTTModel, TreeForeignKey
 from django.utils.text import slugify
 import random
 import string
+from uuid import uuid4
+
 
 def random_string_generator(size=4, chars=string.ascii_lowercase + string.digits):
-    return ''.join(random.choice(chars) for _ in range(size))
+    return "".join(random.choice(chars) for _ in range(size))
 
 
-
-class Category(MPTTModel): 
-    """
-    Category Table implimented with MPTT.
-    """
+class Category(MPTTModel):
 
     name = models.CharField(
         ("Category Name"),
@@ -23,9 +22,19 @@ class Category(MPTTModel):
         unique=True,
     )
     slug = models.SlugField(_("Category slug"), max_length=255, unique=True)
-    url=models.CharField(_("nested path to this category"), max_length=200,default=' ',null=True,blank=True)
-    paths=models.JSONField(_("list of ancestors"), default=list, null=True, blank=True )
-    parent = TreeForeignKey("self", on_delete=models.CASCADE, null=True, blank=True, related_name="nodes")
+    url = models.CharField(
+        _("nested path to this category"),
+        max_length=200,
+        default=" ",
+        null=True,
+        blank=True,
+    )
+    paths = models.JSONField(
+        _("list of ancestors"), default=list, null=True, blank=True
+    )
+    parent = TreeForeignKey(
+        "self", on_delete=models.CASCADE, null=True, blank=True, related_name="nodes"
+    )
     is_active = models.BooleanField(default=True)
 
     class MPTTMeta:
@@ -40,33 +49,32 @@ class Category(MPTTModel):
 
     def __str__(self):
         return str(self.name)
-    
-    def save(self,*args, **kwargs):
-      allData=Category.objects.all()
-      def get_slugs_ancestors(self):
-          listOfSlugs=[]
-          if self.parent_id:
-              i=self.parent_id
-              while isinstance(i, int)  :
-                  lastAncestorRow=allData.get(id=i)
-                  listOfSlugs.append(lastAncestorRow.slug)
-                  i=lastAncestorRow.parent_id
-          listOfSlugs.insert(0,self.slug)
-          return listOfSlugs[::-1]
 
-      allData=Category.objects.all()
-      self.paths=get_slugs_ancestors(self)
-      self.url='/'.join([str(x) for x in get_slugs_ancestors(self)])
-      super().save(*args, **kwargs)
+    def save(self, *args, **kwargs):
+        allData = Category.objects.all()
+
+        def get_slugs_ancestors(self):
+            listOfSlugs = []
+            if self.parent_id:
+                i = self.parent_id
+                while isinstance(i, int):
+                    lastAncestorRow = allData.get(id=i)
+                    listOfSlugs.append(lastAncestorRow.slug)
+                    i = lastAncestorRow.parent_id
+            listOfSlugs.insert(0, self.slug)
+            return listOfSlugs[::-1]
+
+        allData = Category.objects.all()
+        self.paths = get_slugs_ancestors(self)
+        self.url = "/".join([str(x) for x in get_slugs_ancestors(self)])
+        super().save(*args, **kwargs)
 
 
 class ProductType(models.Model):
-    """ 
-    ProductType Table will provide a list of the different types
-    of products that are for sale.
-    """
 
-    name = models.CharField(verbose_name=_("Product Name"), help_text=_("Required"), max_length=255, unique=True)
+    name = models.CharField(
+        _("Product Name"), help_text=_("Required"), max_length=255, unique=True
+    )
     is_active = models.BooleanField(default=True)
 
     class Meta:
@@ -77,15 +85,12 @@ class ProductType(models.Model):
         return self.name
 
 
-
 class ProductSpecification(models.Model):
-    """
-    The Product Specification Table contains product
-    specifiction or features for the product types.
-    """
 
     product_type = models.ForeignKey(ProductType, on_delete=models.RESTRICT)
-    name = models.CharField(verbose_name=_("Name"), help_text=_("Required"), max_length=255)
+    name = models.CharField(
+        verbose_name=_("Name"), help_text=_("Required"), max_length=255
+    )
 
     class Meta:
         verbose_name = _("Product Specification")
@@ -96,9 +101,6 @@ class ProductSpecification(models.Model):
 
 
 class Product(models.Model):
-    """
-    The Product table contining all product items.
-    """
 
     product_type = models.ForeignKey(ProductType, on_delete=models.RESTRICT)
     category = models.ForeignKey(Category, on_delete=models.RESTRICT)
@@ -107,8 +109,10 @@ class Product(models.Model):
         help_text=_("Required"),
         max_length=255,
     )
-    description = models.TextField(verbose_name=_("description"), help_text=_("Not Required"), blank=True)
-    slug = models.SlugField(max_length=255,blank=True,default=None)
+    description = models.TextField(
+        verbose_name=_("description"), help_text=_("Not Required"), blank=True
+    )
+    slug = models.SlugField(max_length=255, blank=True, default=None)
     regular_price = models.DecimalField(
         verbose_name=_("Regular price"),
         help_text=_("Maximum 999.99"),
@@ -136,9 +140,10 @@ class Product(models.Model):
         help_text=_("Change product visibility"),
         default=True,
     )
-    created_at = models.DateTimeField(_("Created at"), auto_now_add=True, editable=False)
+    created_at = models.DateTimeField(
+        _("Created at"), auto_now_add=True, editable=False
+    )
     updated_at = models.DateTimeField(_("Updated at"), auto_now=True)
-    
 
     class Meta:
         ordering = ("-created_at",)
@@ -149,27 +154,22 @@ class Product(models.Model):
         return reverse("store:product_detail", args=[self.slug])
 
     def __str__(self):
-        return self.title
+        return str(self.title)
 
-    def save(self,*args, **kwargs):
+    def save(self, *args, **kwargs):
         currentSlug = slugify(self.title)
         qs_exists = Product.objects.filter(slug=currentSlug).exists()
         if qs_exists:
             newSlug = "{slug}-{randstr}".format(
-                        slug=currentSlug,
-                        randstr=random_string_generator(size=4)
-                    )
-        else :
-            newSlug=currentSlug
-        self.slug=newSlug
+                slug=currentSlug, randstr=random_string_generator(size=4)
+            )
+        else:
+            newSlug = currentSlug
+        self.slug = newSlug
         super().save(*args, **kwargs)
-    
+
 
 class ProductSpecificationValue(models.Model):
-    """
-    The Product Specification Value table holds each of the
-    products individual specification or bespoke features.
-    """
 
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     specification = models.ForeignKey(ProductSpecification, on_delete=models.RESTRICT)
@@ -186,12 +186,12 @@ class ProductSpecificationValue(models.Model):
     def __str__(self):
         return self.value
 
-class ProductImage(models.Model):
-    """
-    The Product Image table.
-    """
 
-    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="product_image")
+class ProductImage(models.Model):
+
+    product = models.ForeignKey(
+        Product, on_delete=models.CASCADE, related_name="product_image"
+    )
     image = models.ImageField(
         verbose_name=_("image"),
         help_text=_("Upload a product image"),
@@ -213,19 +213,49 @@ class ProductImage(models.Model):
         verbose_name = _("Product Image")
         verbose_name_plural = _("Product Images")
 
-class Comments(models.Model):
-    """
-    The Product Image table.
-    """
 
-    product=models.ForeignKey(Product, on_delete=models.CASCADE, related_name='comments')
-    text=models.TextField(verbose_name=_("comment"),blank=False)
+class Comments(models.Model):
+
+    product = models.ForeignKey(
+        Product, on_delete=models.CASCADE, related_name="reviews"
+    )
+    text = models.TextField(verbose_name=_("comment"), blank=False)
     created_at = models.DateTimeField(auto_now_add=True, editable=False)
-    updated_at = models.DateTimeField(auto_now=True) 
-    name=models.CharField(verbose_name=_("name"), max_length=50,blank=False)
-    email=models.EmailField(max_length=254,blank=False)
+    updated_at = models.DateTimeField(auto_now=True)
+    name = models.CharField(verbose_name=_("name"), max_length=50, blank=False)
+    email = models.EmailField(max_length=254, blank=False)
+
     class Meta:
         verbose_name = _("Comment")
         verbose_name_plural = _("Comments")
+
     def __str__(self):
         return self.name
+
+
+class Cart(models.Model):
+
+    id = models.UUIDField(primary_key=True, default=uuid4)
+    created_at = models.DateTimeField(auto_now=False, auto_now_add=True)
+    edited_at = models.DateTimeField(auto_now=True, auto_now_add=False)
+
+    def __str__(self):
+        return str(self.id)
+
+
+class CartItem(models.Model):
+    quantity = models.PositiveSmallIntegerField(
+        verbose_name=_("Quantity"), validators=[MinValueValidator(1)]
+    )
+    product = models.ForeignKey(
+        Product, verbose_name=_("Product Name"), on_delete=models.CASCADE
+    )
+    cart = models.ForeignKey(
+        Cart, verbose_name=_("Cart ID"), on_delete=models.CASCADE, related_name="itemss"
+    )
+
+    class Meta:
+        unique_together = [["product", "cart"]]
+
+    def __str__(self):
+        return str(self.product)

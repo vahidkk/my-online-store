@@ -1,6 +1,7 @@
 import Head from "next/head";
 import { useRouter } from "next/router";
 import Link from "next/dist/client/link";
+import { useEffect } from "react";
 
 function Product({ post, categories }) {
   const router = useRouter();
@@ -8,6 +9,7 @@ function Product({ post, categories }) {
   if (router.isFallback) {
     return <div>Loading...</div>;
   }
+
   const lastCategoryBranch = post.category.slug;
 
   const pathToSlash = (array, target) => {
@@ -376,7 +378,7 @@ export async function getStaticPaths() {
 }
 
 export async function getStaticProps({ params }) {
-  const res = await fetch(`http://127.0.0.1:8000/api/${params.slug}/`);
+  const res = await fetch(`http://127.0.0.1:8000/api/products/${params.slug}/`);
   const post = await res.json();
 
   const ress = await fetch("http://127.0.0.1:8000/api/category/");
