@@ -2,34 +2,83 @@ from rest_framework import serializers
 from .models import Cart, CartItem, Category, Comments, ProductImage, Product
 
 
+class CategorySerializer(serializers.ModelSerializer):
+    price_range = serializers.SerializerMethodField()
+
+    def get_price_range(self, cat):
+        sorted_regular_prices = sorted(
+            [
+                list(i.values())[0]
+                for i in Category.objects.filter(id=cat.id)
+                .get_descendants(include_self=True)
+                .values("product__regular_price")
+                if list(i.values())[0]
+            ]
+        )
+        return {
+            "min_price": sorted_regular_prices[0]
+            if len(sorted_regular_prices) > 0
+            else 0,
+            "max_price": sorted_regular_prices[-1]
+            if len(sorted_regular_prices) > 0
+            else 0,
+        }
+
+        # [
+        #     list(i.values())[0]
+        #     for i in Category.objects.filter(id=cat.id)
+        #     .get_descendants(include_self=True)
+        #     .values("product__regular_price")
+        #     if list(i.values())[0]
+        # ]
+
+    class Meta:
+        model = Category
+        fields = ["name", "price_range", "slug", "url", "paths"]
+
+
 class FileSerializer(serializers.ModelSerializer):
 
     key = serializers.CharField(source="slug")
     label = serializers.CharField(source="name")
+    # price_range = CategorySerializer()
 
-    class Meta:
-        model = Category
-        fields = ["key", "label", "url", "level", "paths"]
+    # def get_price_range(self, cat):
+    #     sorted_regular_prices = sorted(
+    #         [
+    #             list(i.values())[0]
+    #             for i in cat.get_descendants(include_self=True).values(
+    #                 "product__regular_price"
+    #             )
+    #             if list(i.values())[0]
+    #         ]
+    #     )
+    #     return {
+    #         "min_price": sorted_regular_prices[0],
+    #         "max_price": sorted_regular_prices[-1],
+    #     }
 
     def get_fields(self):
         fields = super(FileSerializer, self).get_fields()
-        fields["nodes"] = FileSerializer(
-            many=True
-        )  #'nodes' is : related_name="nodes" (from parent field of MPTT on models).
-
+        fields["nodes"] = FileSerializer(many=True)
+        #'nodes' is : related_name="nodes" (from parent field of MPTT on models).
         return fields
+
+    class Meta:
+        model = Category
+        fields = [
+            "key",
+            "label",
+            "url",
+            "level",
+            "paths",
+        ]
 
 
 class ImageSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProductImage
         fields = ["image", "alt_text"]
-
-
-class CategorySerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Category
-        fields = ["name", "slug", "url", "paths"]
 
 
 class ProductViewSetSerializer(serializers.ModelSerializer):
@@ -46,6 +95,8 @@ class ProductViewSetSerializer(serializers.ModelSerializer):
             "slug",
             "regular_price",
             "product_image",
+            "available_quantity",
+            "available_quantity",
         ]
 
 
@@ -62,9 +113,18 @@ class ReviewSerializer(serializers.ModelSerializer):
 
 
 class SimpleProductSerializer(serializers.ModelSerializer):
+    product_image = ImageSerializer(many=True, read_only=True)
+
     class Meta:
         model = Product
-        fields = ["id", "title", "regular_price"]
+        fields = [
+            "id",
+            "title",
+            "regular_price",
+            "slug",
+            "product_image",
+            "available_quantity",
+        ]
 
 
 class CartItemSerializer(serializers.ModelSerializer):

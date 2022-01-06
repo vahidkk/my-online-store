@@ -140,6 +140,12 @@ class Product(models.Model):
         help_text=_("Change product visibility"),
         default=True,
     )
+    available_quantity = models.PositiveIntegerField(
+        verbose_name=_("Available Quantity in the store"),
+        default=10,
+        blank=True,
+        null=True,
+    )
     created_at = models.DateTimeField(
         _("Created at"), auto_now_add=True, editable=False
     )

@@ -19,6 +19,7 @@ from .serializers import (
     ProductViewSetSerializer,
     ReviewSerializer,
     FileSerializer,
+    CategorySerializer,
 )
 from .filters import ProductFilter
 from .paginations import CustomPagination
@@ -47,6 +48,13 @@ class CategoryListView(generics.ListAPIView):
 
     def get_queryset(self):
         return Category.objects.filter(level=0)
+
+
+class AllCategoriesListView(generics.ListAPIView):
+    serializer_class = CategorySerializer
+
+    def get_queryset(self):
+        return Category.objects.all()
 
 
 class ProductViewSet(ModelViewSet):

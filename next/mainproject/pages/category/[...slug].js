@@ -1,27 +1,157 @@
 import Link from "next/link";
+import Image from "next/image";
+import { useRef, useState, useEffect } from "react";
 import { useRouter } from "next/router";
+import { wrapper } from "../../store/store";
+import { connect } from "react-redux";
+import { bindActionCreators } from "redux";
+import { changePageSize } from "../../store/pagesize/action";
+import { changeOrdering } from "../../store/ordering/action";
+import { CartManager } from "../../libs/CartManager";
+import { Range, getTrackBackground, useThumbOverlap } from "react-range";
+
 import TreeMenu, {
   defaultChildren,
   ItemComponent,
 } from "react-simple-tree-menu";
 import Head from "next/head";
+// import { LoadCartContent } from "../../components/muhsin";
+import { LoadCartContent } from "../../libs/LoadCartContent";
+import useAddToCartHandler from "../../libs/AddToCartHandler";
 
-function Home({ posts, categories }) {
+function Home({
+  posts,
+  errorCode,
+  treeDataCategoryFeed,
+  categories,
+  pagesize,
+  changePageSize,
+  ordering,
+  changeOrdering,
+  myCartID,
+  uaString,
+}) {
   const router = useRouter();
-  if (router.isFallback) {
-    return <div>Loading...</div>;
-  }
+  // if (router.isFallback) {
+  //   return <div>Loading...</div>;
+  // }
+  const [imageisLoaded, setImageIsLoaded] = useState(false);
+  // thumb sizes for price range : ###################################
+  const THUMB_SIZE_HEIGHT = 29;
+  const THUMB_SIZE_WIDTH = 21;
+  // START OF RANGE SLIDER CALC : ###############################################################################
+  const currentCategoryBasedOnURL = categories.filter((obj) =>
+    obj.paths > 1
+      ? obj.paths.join()
+      : obj.paths[0] ===
+        (router.query.slug.length > 1 && Array.isArray(router.query.slug))
+      ? router.query.slug.join()
+      : Array.isArray(router.query.slug)
+      ? router.query.slug[0]
+      : router.query.slug
+  )[0];
+
+  currentCategoryBasedOnURL.price_range.min_price ===
+    currentCategoryBasedOnURL.price_range.max_price &&
+    currentCategoryBasedOnURL.price_range.max_price++;
+
+  const [priceRange, setPriceRange] = useState({
+    values: [
+      currentCategoryBasedOnURL.price_range.min_price,
+      currentCategoryBasedOnURL.price_range.max_price,
+    ],
+    isDragging: false,
+  });
+  const [showHoverOnTouch, setShowHoverOnTouch] = useState({
+    boolean: false,
+    id: null,
+  });
+  const timerRef = useRef(null);
+
+  useEffect(() => {
+    // const temp = CartManager();
+    // setPriceRange({
+    //   values: [
+    //     posts.results[0].category.price_range.min_price,
+    //     posts.results[0].category.price_range.max_price,
+    //   ],
+    // });
+    // }, [posts]);
+  }, []);
+  const [addThisItemToCart, setAddThisItemToCart] = useState(null);
+  const [mutateAndFetchAddToCart, errorOccured] = useAddToCartHandler(myCartID);
+  const addToCartClickHandler = (post) => {
+    mutateAndFetchAddToCart(post, false, true);
+  };
+  const {
+    data: cartData,
+    isLoading,
+    isError,
+  } = LoadCartContent(true, myCartID);
+  console.log("cart items on slug page:", cartData);
+  const handleRouteChange = (
+    e,
+    pagenumberReset = false,
+    typeOfRouterChange = "pagesize"
+  ) => {
+    if (typeOfRouterChange === "pagesize") {
+      pagenumberReset
+        ? router.push({
+            query: {
+              ...router.query,
+              page_size: e,
+              p: 1,
+            },
+          })
+        : router.push({
+            query: {
+              ...router.query,
+              page_size: e,
+            },
+          });
+    } else if (typeOfRouterChange === "ordering") {
+      router.push({
+        query: {
+          ...router.query,
+          ordering: e,
+        },
+      });
+    } else if (
+      typeOfRouterChange === "priceFiltering" &&
+      priceRange.isDragging === true
+    ) {
+      const cleanPriceFilteredURL = ({
+        regular_price__gte,
+        regular_price__lte,
+        slug,
+        ...rest
+      }) => rest;
+      console.log("cleanurl:", cleanPriceFilteredURL(router.query));
+
+      router.push(
+        {
+          query: {
+            ...router.query,
+            // ordering: e,
+            p: 1,
+            regular_price__gte: e[0],
+            regular_price__lte: e[1],
+          },
+        },
+        Object.keys(cleanPriceFilteredURL(router.query)).length > 0
+          ? {
+              query: cleanPriceFilteredURL(router.query),
+            }
+          : router.asPath,
+        { scroll: false }
+      );
+      setPriceRange({ ...priceRange, isDragging: false });
+    }
+  };
 
   const pageNumber = parseInt(
     router.query.p && router.query.p > 0 ? router.query.p : 1
   );
-  const pageSize = parseInt(
-    router.query.page_size && router.query.page_size > 2
-      ? router.query.page_size
-      : 4
-  );
-
-  const treeFeedObj = categories;
 
   // Finding ancestors of current page's category : ##########################################
   const pathToPageTitle = (array, target) => {
@@ -34,12 +164,14 @@ function Home({ posts, categories }) {
     });
     return result;
   };
-  const currentPageLabel = pathToPageTitle(
-    treeFeedObj,
-    router.query.slug.join("/")
-  )
-    .split("/")
-    .slice(-1)[0]; // this will return the last member of lables which is current page's category title to be used on Head
+  const currentPageLabel = currentCategoryBasedOnURL.name;
+  //  pathToPageTitle(
+  //   treeFeedObj,
+  //   router.query.slug.join("/")
+  // )
+  //   .split("/")
+  //   .slice(-1)[0];
+  // this will return the last member of lables which is current page's category title to be used on Head
   const pathToSlash = (array, target) => {
     // Slash separated ancestor categories to use on TreeMenu
     var result;
@@ -52,31 +184,40 @@ function Home({ posts, categories }) {
   };
 
   const rootAsArray = router.query.slug;
+
   let initialOpens = []; //{initialOpenNodes}'s feed for TreeMenu
-  for (let i = rootAsArray.length - 1; i >= 0; i--) {
-    initialOpens.push(rootAsArray.slice(0, i + 1).join("/"));
+  for (let i = currentCategoryBasedOnURL.paths.length - 1; i >= 0; i--) {
+    initialOpens.push(
+      currentCategoryBasedOnURL.paths.slice(0, i + 1).join("/")
+    );
   }
 
   // end of finding ancestors of category .########################################################################
   // start of pagination variables :###############################################################################
   const totalNumberOfPages = Array(
-    posts.count % pageSize === 0
-      ? posts.count / pageSize
-      : parseInt(posts.count / pageSize) + 1
+    posts.count
+      ? posts.count % pagesize === 0
+        ? posts.count / pagesize
+        : parseInt(posts.count / pagesize) + 1
+      : 1
   ).fill(null);
   //  end of pagination variables  ################################################################################
+  const singleProductLinkHandler = (link) => {
+    router.push("../product/" + link);
+  };
   return (
     <>
       <Head>
         <title>{currentPageLabel}</title>
       </Head>
-      <div class="container py-5">
-        <div class="row">
-          <div class="col-lg-3">
-            <h1 class="h2 pb-4">Categories</h1>
+      <div className="container py-5">
+        <div className="row">
+          <div className="col-lg-3">
+            <h1 className="h2 pb-4">Categories</h1>
             <TreeMenu
-              data={treeFeedObj}
-              initialActiveKey={pathToSlash(treeFeedObj, router.query.slug)}
+              data={treeDataCategoryFeed}
+              // initialActiveKey={pathToSlash(treeFeedObj, router.query.slug)}
+              initialActiveKey={currentCategoryBasedOnURL.url}
               initialOpenNodes={initialOpens}
               onClickItem={({ key, label, ...props }) =>
                 router.push({ pathname: props.url }, undefined, {
@@ -87,15 +228,15 @@ function Home({ posts, categories }) {
               {({ search, items }) => (
                 <>
                   <input
-                    class="rstm-search"
+                    className="rstm-search"
                     onChange={(e) => search(e.target.value)}
                     placeholder="Search categories"
                   />
-                  <ul class="rstm-tree-item-group">
+                  <ul className="rstm-tree-item-group">
                     {items.map(({ key, ...props }) => (
-                      <>
+                      <div key={key}>
                         <ItemComponent key={key} {...props} />
-                      </>
+                      </div>
                     ))}
                   </ul>
                 </>
@@ -103,114 +244,453 @@ function Home({ posts, categories }) {
             </TreeMenu>
           </div>
 
-          <div class="col-lg-9">
-            <div class="row">
-              <div class="col-md-6">
-                <ul class="list-inline shop-top-menu pb-3 pt-1">
-                  <li class="list-inline-item">
-                    <a class="h3 text-dark text-decoration-none mr-3" href="#">
+          <div className="col-lg-9">
+            <div className="row">
+              <div className="col-md-6">
+                {/* <ul className="list-inline shop-top-menu pb-3 pt-1">
+                  <li key="link1" className="list-inline-item">
+                    <a
+                      className="h3 text-dark text-decoration-none mr-3"
+                      href="#"
+                    >
                       Cat link1
                     </a>
                   </li>
-                  <li class="list-inline-item">
-                    <a class="h3 text-dark text-decoration-none mr-3" href="#">
+                  <li key="link2" className="list-inline-item">
+                    <a
+                      className="h3 text-dark text-decoration-none mr-3"
+                      href="#"
+                    >
                       Cat link2
                     </a>
                   </li>
-                  <li class="list-inline-item">
-                    <a class="h3 text-dark text-decoration-none" href="#">
+                  <li key="link3" className="list-inline-item">
+                    <a className="h3 text-dark text-decoration-none" href="#">
                       Cat link3
                     </a>
                   </li>
-                </ul>
+                </ul> */}
+                {/* {console.log(
+                  "posts.results[0].category.price_range.max_price:",
+                  posts.results[0].category.price_range.max_price
+                )}
+                {console.log("priceRange.value", priceRange.value)} */}
+
+                {/* #$%^#$%^&^%$#$%^&%$#%^& */}
+                <Range
+                  step={0.01}
+                  min={currentCategoryBasedOnURL.price_range.min_price}
+                  max={currentCategoryBasedOnURL.price_range.max_price}
+                  values={priceRange.values}
+                  onChange={(values) => {
+                    setPriceRange({ values, isDragging: true });
+                  }}
+                  onFinalChange={(values) =>
+                    handleRouteChange(priceRange.values, true, "priceFiltering")
+                  }
+                  draggableTrack
+                  renderTrack={({ props, children }) => (
+                    <div
+                      onMouseDown={props.onMouseDown}
+                      onTouchStart={props.onTouchStart}
+                      style={{
+                        ...props.style,
+                        height: "36px",
+                        display: "flex",
+                        width: "100%",
+                      }}
+                    >
+                      <div
+                        ref={props.ref}
+                        style={{
+                          height: "5px",
+                          width: "100%",
+                          borderRadius: "4px",
+                          background: getTrackBackground({
+                            min: currentCategoryBasedOnURL.price_range
+                              .min_price,
+                            max: currentCategoryBasedOnURL.price_range
+                              .max_price,
+                            values: priceRange.values,
+                            colors: ["#ccc", "#548BF4", "#ccc"],
+                          }),
+                          alignSelf: "center",
+                        }}
+                      >
+                        {children}
+                      </div>
+                    </div>
+                  )}
+                  renderThumb={({ index, props, isDragged }) => (
+                    <div
+                      {...props}
+                      style={{
+                        ...props.style,
+                        height: `${THUMB_SIZE_HEIGHT}px`,
+                        width: `${THUMB_SIZE_WIDTH}px`,
+                        borderRadius: "4px",
+                        backgroundColor: "#FFF",
+                        display: "flex",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        boxShadow: "0px 2px 6px #AAA",
+                      }}
+                    >
+                      <div
+                        style={{
+                          position: "absolute",
+                          top: "-28px",
+                          color: "#fff",
+                          fontWeight: "bold",
+                          fontSize: "14px",
+                          fontFamily:
+                            "Arial,Helvetica Neue,Helvetica,sans-serif",
+                          padding: "4px",
+                          borderRadius: "4px",
+                          backgroundColor: "#548BF4",
+                        }}
+                      >
+                        {
+                          "$" + priceRange.values[index].toFixed(2)
+                          // .replace(/(\.0*|(?<=(\..*))0*)$/, "")
+                          // .toString()
+                        }
+                      </div>
+                      <div
+                        style={{
+                          height: "16px",
+                          width: "5px",
+                          backgroundColor: isDragged ? "#548BF4" : "#CCC",
+                        }}
+                      />
+                    </div>
+                  )}
+                />
               </div>
-              <div class="col-md-6 pb-4">
-                <div class="d-flex">
-                  <select class="form-control">
-                    <option>Featured</option>
-                    <option>A to Z</option>
-                    <option>other sorting options</option>
+              <div className="col-md-6 pb-4">
+                <div className="d-flex ">
+                  <button label="click ME!" onClick={CartManager} />
+                  {priceRange.min}
+                  {pagesize}
+                  {console.log("pagesize=", pagesize)}
+                  <select
+                    className="form-control"
+                    name="option"
+                    defaultValue={pagesize}
+                    onChange={(event) => {
+                      posts.next == null
+                        ? parseInt(event.target.value) > parseInt(pagesize)
+                          ? handleRouteChange(event.target.value, true)
+                          : handleRouteChange(event.target.value)
+                        : handleRouteChange(event.target.value);
+                      changePageSize(event);
+                    }}
+                  >
+                    <option value="6">Items in page: 6 </option>
+                    <option value="12">Items in page: 12</option>
+                    <option value="18">Items in page: 18</option>
+                    <option value="24">Items in page: 24</option>
+                  </select>
+                  {/* <ChangePageSize /> */}
+                  {/* value={reduxCurrentPageSize}
+                  <select
+                    className="form-control"
+                    name="option"
+                    defaultValue={reduxCurrentPageSize}
+                    onChange={(e) => dispatch(pageSizeAction(e.target.value))}
+                  >
+                    <option value="6">Items in page: 6 </option>
+                    <option value="12">Items in page: 12</option>
+                    <option value="18">Items in page: 18</option>
+                    <option value="24">Items in page: 24</option>
+                  </select> */}
+                  V={ordering}
+                  <select
+                    className="form-control"
+                    defaultValue={ordering}
+                    onChange={(event) => {
+                      handleRouteChange(event.target.value, false, "ordering");
+                      changeOrdering(event);
+                    }}
+                  >
+                    <option value="-regular_price">
+                      Sort by price (high to low)
+                    </option>
+                    <option value="regular_price">
+                      Sort by price (low to high)
+                    </option>
+                    <option value="updated_at">Sort by newest</option>
+                    <option value="-updated_at">Sort by oldest</option>
                   </select>
                 </div>
               </div>
             </div>
-            <div class="row">
-              {posts.results.map((post) => (
-                <div key={post.id} class="col-md-4">
-                  <div class="card mb-4 product-wap rounded-0">
-                    <div class="card results.rounded-0">
-                      <img
-                        class="card-img rounded-0 img-fluid"
-                        src={post.product_image[0].image}
-                        alt={post.product_image[0].alt_text}
-                      />
-                      <div class="card-img-overlay rounded-0 product-overlay d-flex align-items-center justify-content-center">
-                        <ul class="results.list-unstyled">
+            <div className="row">
+              {errorCode ? (
+                <div>
+                  <br />
+                  <br />
+                  {errorCode === 404 ? (
+                    <>No item found for the specified criteria !</>
+                  ) : (
+                    <b>An error occured. Error Code :{errorCode}</b>
+                  )}
+                </div>
+              ) : posts.results.length < 1 ? (
+                <>No item found for the specified criteria !</>
+              ) : (
+                posts.results.map((post) => (
+                  <div key={post.id} className="col-md-4">
+                    <div className="card mb-4 product-wap rounded-0">
+                      {/* <Link
+                        href={{
+                          pathname: "/product/" + post.slug,
+                          // query: router.query ,
+                        }}
+                      > */}
+                      <div
+                        className="card results.rounded-0"
+                        // onClick={singleProductLinkHandler}
+
+                        // onTouchStart={(e) => e.preventDefault()}
+                        //decide wheter show ontouchEnd or not :
+                        // {...(canClick && { onClick: this.handler })}
+                        {...(showHoverOnTouch.id !== post.id && {
+                          onTouchEnd: (e) => {
+                            e.preventDefault();
+                            setShowHoverOnTouch({
+                              boolean: true,
+                              id: post.id,
+                            });
+                            clearTimeout(timerRef.current);
+                            timerRef.current = setTimeout(() => {
+                              setShowHoverOnTouch({
+                                boolean: false,
+                                // id: post.id,
+                                id: null,
+                              });
+                            }, 3000);
+                          },
+                        })}
+                      >
+                        {/* <div className=" bg-primary rounded-0 product-overlay d-flex align-items-end justify-content-start">
+                          www
+                        </div> */}
+                        {/* <img
+                          className="card-img rounded-0 img-fluid"
+                          src={post.product_image[0].image}
+                          alt={post.product_image[0].alt_text}
+                        /> */}
+
+                        {/* {!imageisLoaded && (
+                          <>
+                            {console.log(
+                              "FFFFFFFFFFFFFFFFAAAAAAAAAAAAAALLLLLLLLLLLLLSSSSSSSSSSSEEE"
+                            )}
+                            <div className="card-placeholder">
+                              <div className="card-placeholder-image">
+                                <div className="load-wraper">
+                                  <div className="activity"></div>
+                                </div>
+                              </div>
+                              <div className="card-placeholder-content">
+                                <div className="card-placeholder-text">
+                                  <div className="load-wraper">
+                                    <div className="activity"></div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="card-placeholder">
+                              <div className="card-placeholder-image">
+                                <div className="load-wraper">
+                                  <div className="activity"></div>
+                                </div>
+                              </div>
+                              <div className="card-placeholder-content">
+                                <div className="card-placeholder-avatar">
+                                  <div className="load-wraper circular">
+                                    <div className="activity"></div>
+                                  </div>
+                                </div>
+                                <div className="card-placeholder-avatar-text">
+                                  <div className="load-wraper">
+                                    <div className="activity"></div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </>
+                        )} */}
+
+                        <Image
+                          src={post.product_image[0].image}
+                          alt={post.product_image[0].alt_text}
+                          onLoad={() => setImageIsLoaded(true)}
+                          width={300}
+                          height={300}
+                          placeholder="blur"
+                          blurDataURL="/Eclipse-1s-211px.svg"
+                        />
+                        {/* 
+                        <div className="d-flex  bg-primary   p-2 bd-highlight">
+                          {showHoverOnTouch.id === post.id &&
+                          showHoverOnTouch.boolean
+                            ? "true"
+                            : "false"}
+                        </div> */}
+                        <div
+                          className={`d-flex   p-2 bd-highlight ${
+                            post.available_quantity < 2
+                              ? "bg-danger"
+                              : post.available_quantity < 4
+                              ? "bg-warning"
+                              : "bg-success"
+                          }`}
+                        >
+                          {post.available_quantity < 2
+                            ? "Hurry! Only 1 left in stock!"
+                            : post.available_quantity < 4
+                            ? "Only 3 left in stock!"
+                            : "In stock"}
+                        </div>
+                        <div
+                          className={
+                            showHoverOnTouch.boolean &&
+                            showHoverOnTouch.id === post.id
+                              ? "card-img-overlay  rounded-0 product-overlay-touch d-flex align-items-end justify-content-start"
+                              : "card-img-overlay  rounded-0 product-overlay d-flex align-items-end justify-content-start"
+                          }
+                        >
+                          <div className="container  ">
+                            <div className="row  ">
+                              <div
+                                // className="d-flex bg-success make-it-absolute align-items-stretch"
+                                {...(showHoverOnTouch.id !== post.id &&
+                                  !showHoverOnTouch.boolean && {
+                                    onClick: () =>
+                                      singleProductLinkHandler(post.slug),
+                                    // className:
+                                    //   "d-flex bg-success make-it-absolute align-items-stretch",
+                                    className: " make-it-absolute",
+                                    // "d-flex d-flex flex-column flex-grow flex-fill bg-info",
+                                  })}
+                                onTouchEnd={(e) => e.preventDefault()}
+                              ></div>
+                            </div>
+                            <div className="row">
+                              <div className="col-md-auto ">
+                                <ul className="results list-unstyled">
+                                  <li></li>
+                                  <li>
+                                    <a className="btn btn-success text-white  ">
+                                      {/* after click should be converted from far to fa like this : <i className="fa fa-heart fa-fw"></i> */}
+                                      <i className="far fa-heart fa-fw"></i>
+                                      {/* after click should be converted from far to fa like this : <i className="fa fa-heart fa-fw"></i> */}
+                                    </a>
+                                  </li>
+                                  <li>
+                                    <a
+                                      className="btn btn-success text-white   mt-2"
+                                      onClick={(e) => {
+                                        e.preventDefault();
+                                        addToCartClickHandler(post);
+                                      }}
+                                    >
+                                      {cartData &&
+                                      cartData.itemss.filter(
+                                        (x) =>
+                                          parseInt(x.product.id) ===
+                                          parseInt(post.id)
+                                      ).length > 0 ? (
+                                        <>
+                                          {/* <i className="fas fa-shopping-cart"></i> */}
+                                          <a className="nav-icon position-relative text-decoration-none text-white ">
+                                            <i className="fa fa-fw fa-shopping-cart  mr-1  px-md-0  "></i>
+                                            <small>
+                                              <span className="position-absolute top-0 left-100 translate-middle badge rounded-pill bg-white-transparent  text-dark mt-1">
+                                                {
+                                                  cartData.itemss.filter(
+                                                    (x) =>
+                                                      parseInt(x.product.id) ===
+                                                      parseInt(post.id)
+                                                  )[0].quantity
+                                                }
+                                              </span>
+                                            </small>
+                                          </a>
+                                        </>
+                                      ) : (
+                                        <a className="nav-icon position-relative text-decoration-none text-white ">
+                                          <i className="fas fa-cart-plus  fa-fw  "></i>
+                                        </a>
+                                      )}
+                                    </a>
+                                  </li>
+                                </ul>
+                              </div>
+                              <div
+                                {...(showHoverOnTouch.id !== post.id &&
+                                  !showHoverOnTouch.boolean && {
+                                    onClick: () =>
+                                      singleProductLinkHandler(post.slug),
+                                    className:
+                                      "col  px-0 mx-0 pb-0 mb-0 cursor-pointer",
+                                  })}
+                                onTouchEnd={(e) => e.preventDefault()}
+                              ></div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      {/* </Link> */}
+                      <div className="results.card-body">
+                        <Link
+                          href={{
+                            pathname: "/product/" + post.slug,
+                            // query: router.query ,
+                          }}
+                          passHref
+                        >
+                          <a className="h3 text-decoration-none">
+                            {post.title}
+                          </a>
+                        </Link>
+                        <ul className="w-100 list-unstyled d-flex justify-content-between mb-0">
                           <li>
-                            <a
-                              class="btn btn-success text-white"
-                              href={`/product/${encodeURIComponent(post.slug)}`}
-                            >
-                              <i class="far fa-heart"></i>
-                            </a>
+                            <b>Free Delivery</b>
                           </li>
-                          <li>
-                            <a
-                              class="btn btn-success text-white mt-2"
-                              href={`/product/${encodeURIComponent(post.slug)}`}
-                            >
-                              <i class="far fa-eye"></i>
-                            </a>
-                          </li>
-                          <li>
-                            <a
-                              class="btn btn-success text-white mt-2"
-                              href={`/product/${encodeURIComponent(post.slug)}`}
-                            >
-                              <i class="fas fa-cart-plus"></i>
-                            </a>
+                          <li className="pt-2">
+                            <span className="product-color-dot color-dot-red float-left rounded-circle ml-1"></span>
+                            <span className="product-color-dot color-dot-blue float-left rounded-circle ml-1"></span>
+                            <span className="product-color-dot color-dot-black float-left rounded-circle ml-1"></span>
+                            <span className="product-color-dot color-dot-light float-left rounded-circle ml-1"></span>
+                            <span className="product-color-dot color-dot-green float-left rounded-circle ml-1"></span>
                           </li>
                         </ul>
+                        <ul className="list-unstyled d-flex justify-content-center mb-1">
+                          <li>
+                            <i className="text-warning fa fa-star"></i>
+                            <i className="text-warning fa fa-star"></i>
+                            <i className="text-warning fa fa-star"></i>
+                            <i className="text-muted fa fa-star"></i>
+                            <i className="text-muted fa fa-star"></i>
+                          </li>
+                        </ul>
+                        <p className="text-center mb-0">
+                          $ :{post.regular_price}
+                        </p>
                       </div>
                     </div>
-                    <div class="results.card-body">
-                      <a
-                        href={`/product/${encodeURIComponent(post.slug)}`}
-                        class="h3 text-decoration-none"
-                      >
-                        {post.title}
-                      </a>
-                      <ul class="w-100 list-unstyled d-flex justify-content-between mb-0">
-                        <li>
-                          <b>Free Delivery</b>
-                        </li>
-                        <li class="pt-2">
-                          <span class="product-color-dot color-dot-red float-left rounded-circle ml-1"></span>
-                          <span class="product-color-dot color-dot-blue float-left rounded-circle ml-1"></span>
-                          <span class="product-color-dot color-dot-black float-left rounded-circle ml-1"></span>
-                          <span class="product-color-dot color-dot-light float-left rounded-circle ml-1"></span>
-                          <span class="product-color-dot color-dot-green float-left rounded-circle ml-1"></span>
-                        </li>
-                      </ul>
-                      <ul class="list-unstyled d-flex justify-content-center mb-1">
-                        <li>
-                          <i class="text-warning fa fa-star"></i>
-                          <i class="text-warning fa fa-star"></i>
-                          <i class="text-warning fa fa-star"></i>
-                          <i class="text-muted fa fa-star"></i>
-                          <i class="text-muted fa fa-star"></i>
-                        </li>
-                      </ul>
-                      <p class="text-center mb-0">$ :{post.regular_price}</p>
-                    </div>
                   </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
             <div div="row">
-              <ul class="pagination pagination-lg justify-content-end">
+              <ul className="pagination pagination-lg justify-content-end">
                 {posts.previous && (
-                  <li class="page-item">
+                  <li className="page-item">
                     <Link
                       href={{
                         // pathname: ,
@@ -218,16 +698,19 @@ function Home({ posts, categories }) {
                       }}
                       passHref
                     >
-                      <a class="page-link rounded-0 mr-3 shadow-sm border-top-0 border-left-0 text-dark  responsivepagination">
+                      <a className="page-link rounded-0 mr-3 shadow-sm border-top-0 border-left-0 text-dark  responsivepagination">
                         Previous
                       </a>
                     </Link>
                   </li>
                 )}
                 {totalNumberOfPages.map((n, paginationPageNumber) => (
-                  <>
+                  <div key={paginationPageNumber}>
                     {pageNumber == paginationPageNumber + 1 ? (
-                      <li class="page-item disabled">
+                      <li
+                        key={paginationPageNumber + 1}
+                        className="page-item disabled"
+                      >
                         <Link
                           href={{
                             // pathname: ,
@@ -236,15 +719,15 @@ function Home({ posts, categories }) {
                           passHref
                         >
                           <a
-                            class="page-link active rounded-0 mr-3 shadow-sm border-top-0 border-left-0 responsivepagination"
-                            tabindex="-1"
+                            className="page-link active rounded-0 mr-3 shadow-sm border-top-0 border-left-0 responsivepagination"
+                            tabIndex="-1"
                           >
                             {paginationPageNumber + 1}
                           </a>
                         </Link>
                       </li>
                     ) : (
-                      <li class="page-item">
+                      <li key={paginationPageNumber + 1} className="page-item">
                         <Link
                           href={{
                             // pathname: ,
@@ -256,18 +739,18 @@ function Home({ posts, categories }) {
                           passHref
                         >
                           <a
-                            class="page-link rounded-0 mr-3 shadow-sm border-top-0 border-left-0 text-dark responsivepagination"
-                            tabindex="-1"
+                            className="page-link rounded-0 mr-3 shadow-sm border-top-0 border-left-0 text-dark responsivepagination"
+                            tabIndex="-1"
                           >
                             {paginationPageNumber + 1}
                           </a>
                         </Link>
                       </li>
                     )}
-                  </>
+                  </div>
                 ))}
                 {posts.next && (
-                  <li class="page-item">
+                  <li className="page-item">
                     <Link
                       href={{
                         // pathname: ,
@@ -275,7 +758,7 @@ function Home({ posts, categories }) {
                       }}
                       passHref
                     >
-                      <a class="page-link rounded-0 mr-3 shadow-sm border-top-0 border-left-0 text-dark responsivepagination">
+                      <a className="page-link rounded-0 mr-3 shadow-sm border-top-0 border-left-0 text-dark responsivepagination">
                         Next
                       </a>
                     </Link>
@@ -290,34 +773,71 @@ function Home({ posts, categories }) {
   );
 }
 
-export async function getServerSideProps(context) {
-  let newResolvedUrl = "";
-  context.resolvedUrl
-    .replace("?", "&")
-    .split("&")
-    .map((v, index) => {
-      if (index === 0) {
-        newResolvedUrl = v;
-      } else if (index === 1 && !v.includes("slug")) {
-        newResolvedUrl += "?";
-        newResolvedUrl += v;
-      } else if (index > 1 && !v.includes("slug")) {
-        newResolvedUrl += "&";
-        newResolvedUrl += v;
-      }
-    });
-  const res = await fetch(`http://127.0.0.1:8000/api${newResolvedUrl}`);
-  //page_size must be accessible on redux to be app wise instead of locally ( to be implemented later ! )
-  const posts = await res.json();
-  const ress = await fetch("http://127.0.0.1:8000/api/category/");
-  const categories = await ress.json();
+export const getServerSideProps = wrapper.getServerSideProps(
+  (store) => async (context) => {
+    console.log("storee", store);
+    let newResolvedUrl = "";
+    console.log(
+      context.resolvedUrl
+        .replace("?", "&")
+        .split("&")
+        .filter((a) => !a.includes("slug="))
+    );
+    context.resolvedUrl
+      .replace("?", "&")
+      .split("&")
+      .filter((a) => !a.includes("slug="))
+      .map((v, index) => {
+        if (index === 0) {
+          newResolvedUrl = v;
+        } else if (index === 1) {
+          newResolvedUrl += "?";
+          newResolvedUrl += v;
+        } else if (index > 1) {
+          newResolvedUrl += "&";
+          newResolvedUrl += v;
+        }
+      });
 
+    const res1 = await fetch(`http://127.0.0.1:8000/api${newResolvedUrl}`);
+    const errorCode = res1.ok ? false : res1.status;
+    console.log("res1.status:", res1.status);
+    const posts = await res1.json();
+    const res2 = await fetch(
+      "http://127.0.0.1:8000/api/tree-data-category-feed/"
+    );
+    const treeDataCategoryFeed = await res2.json();
+    const res3 = await fetch("http://127.0.0.1:8000/api/category/");
+    const categories = await res3.json();
+
+    return {
+      props: {
+        posts,
+        errorCode,
+        treeDataCategoryFeed,
+        categories,
+      },
+    };
+  }
+);
+
+const mapStateToProps = (state) => ({
+  pagesize: state.pagesize.pagesize,
+  myCartID: state.myCartID.myCartID,
+  ordering: state.ordering.ordering,
+});
+
+const mapDispatchToProps = (dispatch) => {
   return {
-    props: {
-      posts,
-      categories,
-    },
+    changePageSize: bindActionCreators(
+      (event) => changePageSize(event.target.value),
+      dispatch
+    ),
+    changeOrdering: bindActionCreators(
+      (event) => changeOrdering(event.target.value),
+      dispatch
+    ),
   };
-}
+};
 
-export default Home;
+export default connect(mapStateToProps, mapDispatchToProps)(Home);

@@ -7,7 +7,16 @@ from . import views
 app_name = "store"
 
 urlpatterns = [
-    path("api/category/", views.CategoryListView.as_view(), name="categories"),
+    path(
+        "api/tree-data-category-feed/",
+        views.CategoryListView.as_view(),
+        name="tree-data-category-feed",
+    ),
+    path(
+        "api/category/",
+        views.AllCategoriesListView.as_view(),
+        name="all-categories",
+    ),
     path(
         "api/category/<path:url>",
         views.CategoryItemView.as_view(),
@@ -22,6 +31,7 @@ router.register("api/carts", views.CartViewSet)
 
 products_router = routers.NestedDefaultRouter(router, "api/products", lookup="product")
 products_router.register("reviews", views.ReviewViewSet, basename="product-reviews")
+
 
 carts_router = routers.NestedDefaultRouter(router, "api/carts", lookup="cart")
 carts_router.register("items", views.CartItemViewSet, basename="cart-items")
