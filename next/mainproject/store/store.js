@@ -2,7 +2,6 @@ import { createStore, applyMiddleware, combineReducers } from "redux";
 import { HYDRATE, createWrapper } from "next-redux-wrapper";
 import thunkMiddleware from "redux-thunk";
 import myCartID from "./cartID/reducer";
-import tick from "./tick/reducer";
 import pagesize from "./pagesize/reducer";
 import ordering from "./ordering/reducer";
 
@@ -16,7 +15,6 @@ const bindMiddleware = (middleware) => {
 
 const combinedReducer = combineReducers({
   myCartID,
-  tick,
   pagesize,
   ordering,
 });
