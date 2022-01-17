@@ -1,7 +1,9 @@
+import { endpoint } from "../../utils/constants";
+
 import Head from "next/head";
 import { useRouter } from "next/router";
 import Link from "next/dist/client/link";
-import { useRef, useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { usePopperTooltip } from "react-popper-tooltip";
 import { FindTheCartID } from "../../libs/FindTheCartID";
 import useSWR, { mutate, trigger } from "swr";
@@ -12,7 +14,6 @@ import { bindActionCreators } from "redux";
 import { LoadCartContent } from "../../libs/LoadCartContent";
 import ShowErrorTooltip from "../../components/ShowErrorTooltip";
 import useAddToCartHandler from "../../libs/AddToCartHandler";
-import { normalizeRouteRegex } from "next/dist/lib/load-custom-routes";
 
 function Product({ post, categories, myCartID }) {
   const router = useRouter();
@@ -42,9 +43,6 @@ function Product({ post, categories, myCartID }) {
       url: element.split(",")[2],
     })
   );
-  //  $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
-  //  $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
-  //  $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
   let i = {
     id: 0,
     product: {
@@ -54,7 +52,7 @@ function Product({ post, categories, myCartID }) {
       slug: "0",
       product_image: [
         {
-          image: "http://127.0.0.1:8000/media/images/imageseeee_IGQHQ5W.jpg",
+          image: "/Eclipse-1s-211px.svg",
           alt_text: null,
         },
       ],
@@ -64,6 +62,11 @@ function Product({ post, categories, myCartID }) {
   };
   // const { uuid } = require("uuidv4");
   // let tempKeyID = uuid();
+  const [currentImage, setCurrentImage] = useState({
+    src: post.product_image[0].image,
+    alt: post.product_image[0].alt_text,
+  });
+
   const [isSaving, setIsSaving] = useState(false);
   const [errorOccured, setErrorOccured] = useState({
     errorCode: null,
@@ -98,39 +101,21 @@ function Product({ post, categories, myCartID }) {
   const [isVal, setIsVal] = useState(false);
 
   const [fetchLeftOnStack, setFetchLeftOnStack] = useState([]);
-  console.log("fetchlefffftttt", fetchLeftOnStack);
-  // const memoizedCallback = useCallback(() => {
-  //   console.log(" 54321:", isValidating);
-  // }, [isValidating]);
-  // () => memoizedCallback;
-  data &&
-    mounted &&
-    console.log("here is SWR response ", data, isLoading, isError);
+
   const [deleteState, setDeleteState] = useState({
     order: false,
     done: false,
     id: null,
   });
-
-  // const currentCountNumber = 0;
-  // const stackmanager = async (action) => {
-  //   action === "inc" && currentCountNumber++;
-  //   action === "dec" && currentCountNumber--;
-  //   if (action === "del") currentCountNumber = 0;
-  // };
-
   const itemDeleteHandler = async (i, skipMutating = false) => {
-    setCartItemIDForNewItems(null); // useful for itemPlysHandler
+    setCartItemIDForNewItems(null);
     setDeleteState({ id: i.id, order: true, done: false });
     setIsSaving(true);
     const saveInstanceOfDataBeforeDeletion = data;
     setErrorOccured;
     try {
-      // i = initialItem;
-      // !skipMutating &&
-
       mutate(
-        `http://127.0.0.1:8000/api/carts/${data.id}`,
+        `${endpoint}/carts/${data.id}`,
         {
           ...data,
           total_price: (data.total_price - i.total_price).toFixed(2),
@@ -139,13 +124,9 @@ function Product({ post, categories, myCartID }) {
         false
       );
       if ((!isVal || skipMutating) && i.id) {
-        const res = await fetch(
-          `http://127.0.0.1:8000/api/carts/${data.id}/items/${i.id}/`,
-          {
-            method: "DELETE",
-          }
-        );
-        console.log("res.ok?", res);
+        const res = await fetch(`${endpoint}/carts/${data.id}/items/${i.id}/`, {
+          method: "DELETE",
+        });
         setDeleteState({ ...deleteState, order: false, done: true });
         setIsSaving(false);
         if (!res.ok) throw res.statusText;
@@ -160,11 +141,10 @@ function Product({ post, categories, myCartID }) {
     } catch (err) {
       // if any error, revert the changes:
       mutate(
-        `http://127.0.0.1:8000/api/carts/${data.id}`,
+        `${endpoint}/carts/${data.id}`,
         { ...saveInstanceOfDataBeforeDeletion },
         true
       );
-      // i = data ? data.itemss.filter((x) => x.product.id === post.id)[0] : i;
 
       setErrorOccured({
         errorCode: err,
@@ -177,11 +157,6 @@ function Product({ post, categories, myCartID }) {
   const [cartItemIDForNewItems, setCartItemIDForNewItems] = useState(null);
 
   const itemPlusButtonHandler = async (i) => {
-    // if (fetchLeftOnStack.includes("final-remove")) {
-    //   fetchLeftOnStack.length > 0
-    //     ? setFetchLeftOnStack([...fetchLeftOnStack, "increase"])
-    //     : setFetchLeftOnStack(["increase"]);
-    // } else {
     if (parseInt(i.quantity) !== 0) {
       setIsSaving(true);
       const tem = await mutateAndFetchAddToCart(currentItem);
@@ -189,106 +164,13 @@ function Product({ post, categories, myCartID }) {
     }
     if (parseInt(i.quantity) === 0) {
       setIsVal(true);
-      console.time("Timer1 happened");
-
-      console.log("happened start await", isVal);
-      // shallow mutate > fetch > revalidate > anoher revalidate
       let tem = await mutateAndFetchAddToCart(currentItem, false);
-      await mutate(`http://127.0.0.1:8000/api/carts/${myCartID}`);
-      // i = await data.itemss.filter((x) => x.product.id === post.id)[0];
-      console.log("i happened mutated within plusHandler", i);
-      console.timeEnd("Timer1 happened");
+      await mutate(`${endpoint}/carts/${myCartID}`);
       setIsVal(false);
-      !isVal && console.log("happened END await", isVal);
       setIsSaving(false);
     }
     // }
   };
-
-  // const itemPlusButtonHandler = async (i) => {
-  //   setIsSaving(true);
-  //   console.log(
-  //     ":::utill inspectt:",
-  //     util.inspect(itemPlusButtonHandler)
-  //     // .includes("pending")
-  //   );
-
-  //   const saveInstanceOfDataBeforePlusButtonClick = data;
-  //   setErrorOccured;
-
-  //   try {
-  //     mutate(
-  //       `http://127.0.0.1:8000/api/carts/${data.id}`,
-  //       {
-  //         ...data,
-  //         total_price: (
-  //           parseFloat(data.total_price) + parseFloat(i.product.regular_price)
-  //         ).toFixed(2),
-  //         // .toFixed(2)
-  //         itemss: data.itemss.map((x) => {
-  //           if (x.id === i.id) {
-  //             return {
-  //               ...x,
-  //               quantity: parseInt(x.quantity) + 1,
-  //               total_price: (
-  //                 parseFloat(x.total_price) +
-  //                 parseFloat(x.product.regular_price)
-  //               ).toFixed(2),
-  //             };
-  //           } else {
-  //             return x;
-  //           }
-  //         }),
-  //       },
-  //       false
-  //     );
-  //     console.log("cartItemIDForNewItems >>", i.quantity);
-
-  //     let tem =
-  //     // !cartItemIDForNewItems &&
-  //       parseInt(i.quantity) === 0
-  //         ? (await mutateAndFetchAddToCart(currentItem)).id
-  //         : cartItemIDForNewItems;
-
-  //     setCartItemIDForNewItems(tem);
-
-  //     console.log("cartItemIDForNewItems ::", cartItemIDForNewItems);
-  //     if (parseInt(i.quantity) !== 0) {
-  //       const res = await fetch(
-  //         `http://127.0.0.1:8000/api/carts/${data.id}/items/${
-  //           // !cartItemIDForNewItems ? i.id : cartItemIDForNewItems
-  //           cartItemIDForNewItems
-  //         }/`,
-  //         {
-  //           method: "PATCH",
-  //           headers: {
-  //             "Content-Type": "application/json",
-  //           },
-  //           body: JSON.stringify({
-  //             quantity: parseInt(i.quantity) + 1,
-  //           }),
-  //         }
-  //       );
-  //       const patchResponse = await res.json();
-  //       console.log("PATCH res.ok?", patchResponse);
-  //       setIsSaving(false);
-  //       if (!res.ok) throw res.statusText;
-  //     }
-  //   } catch (err) {
-  //     // if any error, revert the changes:
-  //     mutate(
-  //       `http://127.0.0.1:8000/api/carts/${data.id}`,
-  //       { ...saveInstanceOfDataBeforePlusButtonClick },
-  //       true
-  //     );
-  //     console.log("Oh Snapp:", err);
-  //     setErrorOccured({
-  //       errorCode: err,
-  //       itemCode: i.id,
-  //       actionType: "increase",
-  //     });
-  //   }
-  // };
 
   const itemMinusButtonHandler = async (
     i,
@@ -302,7 +184,7 @@ function Product({ post, categories, myCartID }) {
     try {
       // !skipMutating &&
       mutate(
-        `http://127.0.0.1:8000/api/carts/${data.id}`,
+        `${endpoint}/carts/${data.id}`,
         {
           ...data,
           total_price: (
@@ -327,21 +209,17 @@ function Product({ post, categories, myCartID }) {
         false
       );
       if (!isVal || skipMutating) {
-        const res = await fetch(
-          `http://127.0.0.1:8000/api/carts/${data.id}/items/${i.id}/`,
-          {
-            method: "PATCH",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              quantity: parseInt(i.quantity) - parseInt(minusQuantity),
-            }),
-          }
-        );
+        const res = await fetch(`${endpoint}/carts/${data.id}/items/${i.id}/`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            quantity: parseInt(i.quantity) - parseInt(minusQuantity),
+          }),
+        });
         const patchResponse = await res.json();
         if (!res.ok) {
-          console.log("error happened minushandler");
           throw res.statusText;
         }
       } else {
@@ -354,11 +232,10 @@ function Product({ post, categories, myCartID }) {
     } catch (err) {
       // if any error, revert the changes:
       mutate(
-        `http://127.0.0.1:8000/api/carts/${data.id}`,
+        `${endpoint}/carts/${data.id}`,
         { ...saveInstanceOfDataBeforePlusButtonClick },
         true
       );
-      console.log("Oh Snapp happenedy:", err);
       setErrorOccured({
         errorCode: err,
         itemCode: i.id,
@@ -382,20 +259,11 @@ function Product({ post, categories, myCartID }) {
   useEffect(() => {
     // setIsVal(isVal);
     if (!isVal && fetchLeftOnStack.length > 0) {
-      console.log("happened useEffect", isVal, fetchLeftOnStack, i);
-      console.log("i happened within USEEFFECT", i);
-
-      // debugger;
-      // i =
-      //   data && data.itemss.filter((x) => x.product.id === post.id)[0]
-      //     ? data.itemss.filter((x) => x.product.id === post.id)[0]
-      //     : i;
       if (!fetchLeftOnStack.includes("delete")) {
         let counter = 0;
         for (const action of fetchLeftOnStack) {
           // fetchLeftOnStack.shift();
           action === "decrease" && counter++;
-          console.log("decrease happened", fetchLeftOnStack);
           // action ==='delete' && itemDeleteHandler(currentItem,true)
         }
         counter > 0 && itemMinusButtonHandler(i, true, counter);
@@ -412,14 +280,8 @@ function Product({ post, categories, myCartID }) {
   fetchLeftOnStack.includes("final-remove") &&
     i.id &&
     !isVal &&
-    // console.log("happened Final-Remove");
-    // !i.quantity &&
     setFetchLeftOnStack &&
     itemDeleteHandler(i, true);
-  // console.log("iiiiiiiiii", i);
-  // console.log("iiiiiiiiii data", data);
-  // console.log("iiiiiiiiii post", post);
-  // start of  implementing tooltip for error :
   const [errorVisible, setErrorVisible] = useState(false);
 
   const {
@@ -434,48 +296,39 @@ function Product({ post, categories, myCartID }) {
     visible: errorVisible,
     onVisibleChange: setErrorVisible,
   });
-  //  $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
-  //  $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
-  //  $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
+  useEffect(() => {
+    if (typeof document !== undefined) {
+      const { Carousel } = require("bootstrap");
+    }
+  }, []);
   return (
     <>
       <Head>
         <title>{post.title}</title>
       </Head>
       <section className="bg-light">
-        <div className="container pb-5">
+        <div className="container p-4">
           {/* --START OF BREADCRUMB-- */}
           <nav
             style={{ "--bs-breadcrumb-divider": '">"' }}
             aria-label="breadcrumb"
           >
             <ol className="breadcrumb">
-              {console.log("categoriesAsObject", categoriesAsObject)}
               {categoriesAsObject.slice(0, -1).map((cat, id) => (
-                <>
-                  {/* {categoriesAsObject.length === id + 1 ? (
-                    <li
-                      key={cat.label}
-                      className="breadcrumb-item active"
-                      aria-current="page"
-                    >
-                      {cat.label}
-                    </li>
-                  ) : ( */}
-                  <li key={cat.label} className="breadcrumb-item">
-                    <Link
-                      href={{
-                        pathname: "/category/" + cat.url,
-                        // query: router.query ,
-                      }}
-                      passHref
-                    >
-                      <a>{cat.label} </a>
-                    </Link>
-                  </li>
-                  {/* )} */}
-                </>
+                <li key={id} className="breadcrumb-item">
+                  <Link
+                    href={{
+                      pathname: "/category/" + cat.url,
+                      // query: router.query ,
+                    }}
+                    passHref
+                  >
+                    <a className="h3 text-decoration-none text-success">
+                      {cat.label}{" "}
+                    </a>
+                  </Link>
+                </li>
               ))}
             </ol>
           </nav>
@@ -486,19 +339,15 @@ function Product({ post, categories, myCartID }) {
                 {/* THIS IS THE DEFAULT PHOTO : */}
                 <img
                   className="card-img img-fluid"
-                  src={post.product_image[0].image}
-                  alt={post.product_image[0].alt_text}
+                  src={currentImage.src}
+                  alt={currentImage.alt}
                   id="product-detail"
                 />
               </div>
               <div className="row">
                 {/* --Start Controls */}
                 <div className="col-1 align-self-center">
-                  <a
-                    href="#multi-item-example"
-                    role="button"
-                    data-bs-slide="prev"
-                  >
+                  <a href="#multi-item" role="button" data-bs-slide="prev">
                     <i className="text-dark fas fa-chevron-left"></i>
                     <span className="sr-only">Previous</span>
                   </a>
@@ -506,7 +355,7 @@ function Product({ post, categories, myCartID }) {
                 {/* --End Controls */}
                 {/* --Start Carousel Wrapper */}
                 <div
-                  id="multi-item-example"
+                  id="multi-item"
                   className="col-10 carousel slide carousel-multi-item"
                   data-bs-ride="carousel"
                 >
@@ -516,89 +365,87 @@ function Product({ post, categories, myCartID }) {
                     role="listbox"
                   >
                     {/* --First slide should be 3 pictures */}
-                    <div className="carousel-item">
+                    <div className="carousel-item active">
                       <div className="row">
-                        {post.product_image.map((c) => (
-                          <div className="col-4" key={c.image}>
-                            <a href="#">
-                              <img
-                                className="card-img img-fluid"
-                                src={c.image}
-                                alt={c.alt_text}
-                              />
-                            </a>
-                          </div>
-                        ))}
+                        {post.product_image.map(
+                          (c, index) =>
+                            index < 3 && (
+                              <div className="col-4" key={c.image}>
+                                <img
+                                  onClick={() => {
+                                    setCurrentImage({
+                                      src: c.image,
+                                      alt: c.alt_text,
+                                    });
+                                  }}
+                                  className="card-img img-fluid"
+                                  src={c.image}
+                                  alt={c.alt_text}
+                                  style={{ cursor: "pointer" }}
+                                />
+                              </div>
+                            )
+                        )}
                       </div>
                     </div>
                     {/* --First slide-- */}
 
                     {/* --Second slide-- */}
-                    <div className="carousel-item">
-                      <div className="row">
-                        <div className="col-4">
-                          <a href="#">
-                            <img
-                              className="card-img img-fluid"
-                              src="assets/img/product_single_04.jpg"
-                              alt="Product Image 4"
-                            />
-                          </a>
-                        </div>
-                        <div className="col-4">
-                          <a href="#">
-                            <img
-                              className="card-img img-fluid"
-                              src="assets/img/product_single_05.jpg"
-                              alt="Product Image 5"
-                            />
-                          </a>
-                        </div>
-                        <div className="col-4">
-                          <a href="#">
-                            <img
-                              className="card-img img-fluid"
-                              src="assets/img/product_single_06.jpg"
-                              alt="Product Image 6"
-                            />
-                          </a>
+                    {post.product_image[3] && (
+                      <div className="carousel-item">
+                        <div className="row ">
+                          {post.product_image.map(
+                            (c, index) =>
+                              index >= 3 &&
+                              index < 6 && (
+                                <div className="col-4 " key={c.image}>
+                                  <img
+                                    onClick={() => {
+                                      setCurrentImage({
+                                        src: c.image,
+                                        alt: c.alt_text,
+                                      });
+                                    }}
+                                    className="card-img img-fluid"
+                                    src={c.image}
+                                    alt={c.alt_text}
+                                    style={{ cursor: "pointer" }}
+                                  />
+                                </div>
+                              )
+                          )}
                         </div>
                       </div>
-                    </div>
+                    )}
                     {/* --/.Second slide */}
 
                     {/* --Third slide */}
-                    <div className="carousel-item active">
-                      <div className="row">
-                        <div className="col-4">
-                          <a href="#">
-                            <img
-                              className="card-img img-fluid"
-                              src="assets/img/product_single_07.jpg"
-                              alt="Product Image 7"
-                            />
-                          </a>
-                        </div>
-                        <div className="col-4">
-                          <a href="#">
-                            <img
-                              className="card-img img-fluid"
-                              src="assets/img/product_single_08.jpg"
-                              alt="Product Image 8"
-                            />
-                          </a>
-                        </div>
-                        <div className="col-4">
-                          <a href="#">
-                            <img
-                              className="card-img img-fluid"
-                              src="assets/img/product_single_09.jpg"
-                              alt="Product Image 9"
-                            />
-                          </a>
+                    {post.product_image[6] && (
+                      <div className="carousel-item">
+                        <div className="row">
+                          {post.product_image.map(
+                            (c, index) =>
+                              index >= 6 &&
+                              index < 9 && (
+                                <div className="col-4" key={c.image}>
+                                  <img
+                                    onClick={() => {
+                                      setCurrentImage({
+                                        src: c.image,
+                                        alt: c.alt_text,
+                                      });
+                                    }}
+                                    className="card-img img-fluid"
+                                    src={c.image}
+                                    alt={c.alt_text}
+                                    style={{ cursor: "pointer" }}
+                                  />
+                                </div>
+                              )
+                          )}
                         </div>
                       </div>
-                    </div>
+                    )}
                     {/* --/.Third slide */}
                   </div>
                   {/* --End Slides */}
@@ -606,11 +453,7 @@ function Product({ post, categories, myCartID }) {
                 {/* --End Carousel Wrapper */}
                 {/* --Start Controls */}
                 <div className="col-1 align-self-center">
-                  <a
-                    href="#multi-item-example"
-                    role="button"
-                    data-bs-slide="next"
-                  >
+                  <a href="#multi-item" role="button" data-bs-slide="next">
                     <i className="text-dark fas fa-chevron-right"></i>
                     <span className="sr-only">Next</span>
                   </a>
@@ -623,7 +466,7 @@ function Product({ post, categories, myCartID }) {
               <div className="card">
                 <div className="card-body">
                   <h1 className="h2">{post.title}</h1>
-                  <p className="h3 py-2">{post.regular_price}</p>
+                  <p className="h3 py-2">$ {post.regular_price}</p>
                   <p className="py-2">
                     <i className="fa fa-star text-warning"></i>
                     <i className="fa fa-star text-warning"></i>
@@ -743,10 +586,6 @@ function Product({ post, categories, myCartID }) {
                               }
                               onClick={(event) => {
                                 event.preventDefault();
-                                console.log("beforeeeeeeeeeeeeeeeeeeeee", i);
-                                // parseInt(i.quantity) === 0
-                                //   ? addToCartClickHandler(currentItem)
-                                //   : itemPlusButtonHandler(i);
                                 itemPlusButtonHandler(i);
                                 event.currentTarget.blur();
                               }}
@@ -802,7 +641,10 @@ function Product({ post, categories, myCartID }) {
                           type="submit"
                           className="btn btn-success btn-lg"
                           name="submit"
-                          value="buy"
+                          onClick={(event) => {
+                            event.preventDefault();
+                            router.push("/checkout");
+                          }}
                         >
                           {" "}
                           <small className="align-middle  background-unset remove-key-text responsive-font-size-for-product-page-buttons">
@@ -898,7 +740,7 @@ function Product({ post, categories, myCartID }) {
       <section className="py-5">
         <div className="container">
           <div className="row text-left p-2 pb-3">
-            <h4>Related Products</h4>
+            {/* <h4>Related Products</h4> */}
           </div>
         </div>
       </section>
@@ -908,9 +750,7 @@ function Product({ post, categories, myCartID }) {
 }
 
 export async function getStaticPaths() {
-  const res = await fetch(
-    `http://127.0.0.1:8000/api/products/?page_size=999999`
-  );
+  const res = await fetch(`${endpoint}/products/?page_size=999999`);
   const allProducts = await res.json();
   const paths = allProducts.results.map((post) => ({
     params: { slug: post.slug },
@@ -927,13 +767,11 @@ export async function getStaticPaths() {
 }
 
 export async function getStaticProps({ params }) {
-  const res = await fetch(`http://127.0.0.1:8000/api/products/${params.slug}/`);
+  const res = await fetch(`${endpoint}/products/${params.slug}/`);
   const post = await res.json();
 
-  // const ress = await fetch("http://127.0.0.1:8000/api/category/");
-  const ress = await fetch(
-    "http://127.0.0.1:8000/api/tree-data-category-feed/"
-  );
+  // const ress = await fetch("${endpoint}/category/");
+  const ress = await fetch(`${endpoint}/tree-data-category-feed/`);
   const categories = await ress.json();
 
   return {

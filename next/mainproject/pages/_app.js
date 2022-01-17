@@ -1,9 +1,10 @@
-import "../assets/css/bootstrap.min.css";
+// import "../assets/css/bootstrap.min.css";
+import "bootstrap/dist/css/bootstrap.min.css";
 import Head from "next/dist/shared/lib/head";
 import Layout from "../components/layout/Layout";
 import "../assets/css/fontawesome.min.css";
 import "../assets/css/main.css";
-import "../node_modules/react-simple-tree-menu/dist/main.css";
+// import "../node_modules/react-simple-tree-menu/dist/main.css";
 import { useEffect } from "react";
 import { wrapper } from "../store/store";
 import { SWRConfig } from "swr";
@@ -12,7 +13,7 @@ import NextNProgress from "nextjs-progressbar";
 
 const WrappedApp = ({ Component, pageProps }) => {
   useEffect(() => {
-    import("../assets/js/bootstrap.bundle.min");
+    // import("../assets/js/bootstrap.bundle.min");
   }, []);
   return (
     <>

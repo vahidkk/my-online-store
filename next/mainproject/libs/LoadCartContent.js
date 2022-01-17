@@ -1,11 +1,11 @@
-// import { useRef, useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/router";
 import useSWR, { mutate } from "swr";
+import { endpoint } from "../utils/constants";
 
 export function LoadCartContent(mounted = true, cartID) {
   const router = useRouter();
   const { data, error, isValidating } = useSWR(
-    mounted && cartID ? `http://127.0.0.1:8000/api/carts/${cartID}` : null
+    mounted && cartID ? `${endpoint}/carts/${cartID}` : null
   );
   //handle error when there is cart id on explorer's cookie but no such a cart id is available  on server ( cart id accidentally removed from server ):
   try {
@@ -22,8 +22,7 @@ export function LoadCartContent(mounted = true, cartID) {
               slug: "0",
               product_image: [
                 {
-                  image:
-                    "http://127.0.0.1:8000/media/images/imageseeee_IGQHQ5W.jpg",
+                  image: "/Eclipse-1s-211px.svg",
                   alt_text: null,
                 },
               ],

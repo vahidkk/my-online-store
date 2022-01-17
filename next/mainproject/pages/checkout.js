@@ -14,6 +14,7 @@ import { LoadCartContent } from "../libs/LoadCartContent";
 import ShowErrorTooltip from "../components/ShowErrorTooltip";
 import useAddToCartHandler from "../libs/AddToCartHandler";
 import { normalizeRouteRegex } from "next/dist/lib/load-custom-routes";
+import { endpoint } from "../utils/constants";
 
 function Checkout({ myCartID }) {
   const router = useRouter();
@@ -28,7 +29,7 @@ function Checkout({ myCartID }) {
     slug: "0",
     product_image: [
       {
-        image: "http://127.0.0.1:8000/media/images/imageseeee_IGQHQ5W.jpg",
+        image: "/Eclipse-1s-211px.svg",
         alt_text: null,
       },
     ],
@@ -45,8 +46,7 @@ function Checkout({ myCartID }) {
           slug: "0",
           product_image: [
             {
-              image:
-                "http://127.0.0.1:8000/media/images/imageseeee_IGQHQ5W.jpg",
+              image: "/Eclipse-1s-211px.svg",
               alt_text: null,
             },
           ],
@@ -69,8 +69,7 @@ function Checkout({ myCartID }) {
           slug: "0",
           product_image: [
             {
-              image:
-                "http://127.0.0.1:8000/media/images/imageseeee_IGQHQ5W.jpg",
+              image: "/Eclipse-1s-211px.svg",
               alt_text: null,
             },
           ],
@@ -109,9 +108,6 @@ function Checkout({ myCartID }) {
     true,
     myCartID
   );
-  data &&
-    mounted &&
-    console.log("here is SWR response ", data, isLoading, isError);
 
   const [deleteState, setDeleteState] = useState({
     order: false,
@@ -126,7 +122,7 @@ function Checkout({ myCartID }) {
     setErrorOccured;
     try {
       mutate(
-        `http://127.0.0.1:8000/api/carts/${data.id}`,
+        `${endpoint}/carts/${data.id}`,
         {
           ...data,
           total_price: (data.total_price - i.total_price).toFixed(2),
@@ -134,20 +130,16 @@ function Checkout({ myCartID }) {
         },
         false
       );
-      const res = await fetch(
-        `http://127.0.0.1:8000/api/carts/${data.id}/items/${i.id}/`,
-        {
-          method: "DELETE",
-        }
-      );
-      console.log("res.ok?", res);
+      const res = await fetch(`${endpoint}/carts/${data.id}/items/${i.id}/`, {
+        method: "DELETE",
+      });
       setDeleteState({ ...deleteState, order: false, done: true });
       setIsSaving(false);
       if (!res.ok) throw res.statusText;
     } catch (err) {
       // if any error, revert the changes:
       mutate(
-        `http://127.0.0.1:8000/api/carts/${data.id}`,
+        `${endpoint}/carts/${data.id}`,
         { ...saveInstanceOfDataBeforeDeletion },
         true
       );
@@ -166,7 +158,7 @@ function Checkout({ myCartID }) {
     setErrorOccured;
     try {
       mutate(
-        `http://127.0.0.1:8000/api/carts/${data.id}`,
+        `${endpoint}/carts/${data.id}`,
         {
           ...data,
           total_price: (
@@ -190,34 +182,28 @@ function Checkout({ myCartID }) {
         },
         false
       );
-      console.log("parseInt(i.quantity)", parseInt(i.quantity) + 1);
-      const res = await fetch(
-        `http://127.0.0.1:8000/api/carts/${data.id}/items/${i.id}/`,
-        {
-          method: "PATCH",
+      const res = await fetch(`${endpoint}/carts/${data.id}/items/${i.id}/`, {
+        method: "PATCH",
 
-          headers: {
-            "Content-Type": "application/json",
-          },
+        headers: {
+          "Content-Type": "application/json",
+        },
 
-          body: JSON.stringify({
-            quantity: parseInt(i.quantity) + 1,
-          }),
-        }
-      );
+        body: JSON.stringify({
+          quantity: parseInt(i.quantity) + 1,
+        }),
+      });
       const patchResponse = await res.json();
-      console.log("PATCH res.ok?", patchResponse);
-      // setDeleteState({ ...deleteState, order: false, done: true });
+
       setIsSaving(false);
       if (!res.ok) throw res.statusText;
     } catch (err) {
       // if any error, revert the changes:
       mutate(
-        `http://127.0.0.1:8000/api/carts/${data.id}`,
+        `${endpoint}/carts/${data.id}`,
         { ...saveInstanceOfDataBeforePlusButtonClick },
         true
       );
-      console.log("Oh Snapp:", err);
       setErrorOccured({
         errorCode: err,
         itemCode: i.id,
@@ -233,7 +219,7 @@ function Checkout({ myCartID }) {
     setErrorOccured;
     try {
       mutate(
-        `http://127.0.0.1:8000/api/carts/${data.id}`,
+        `${endpoint}/carts/${data.id}`,
         {
           ...data,
           total_price: (
@@ -257,32 +243,26 @@ function Checkout({ myCartID }) {
         },
         false
       );
-      console.log("parseInt(i.quantity)", parseInt(i.quantity) - 1);
-      const res = await fetch(
-        `http://127.0.0.1:8000/api/carts/${data.id}/items/${i.id}/`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            quantity: parseInt(i.quantity) - 1,
-          }),
-        }
-      );
+      const res = await fetch(`${endpoint}/carts/${data.id}/items/${i.id}/`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          quantity: parseInt(i.quantity) - 1,
+        }),
+      });
       const patchResponse = await res.json();
-      console.log("PATCH res.ok?", patchResponse);
       // setDeleteState({ ...deleteState, order: false, done: true });
       setIsSaving(false);
       if (!res.ok) throw res.statusText;
     } catch (err) {
       // if any error, revert the changes:
       mutate(
-        `http://127.0.0.1:8000/api/carts/${data.id}`,
+        `${endpoint}/carts/${data.id}`,
         { ...saveInstanceOfDataBeforePlusButtonClick },
         true
       );
-      console.log("Oh Snapp:", err);
       setErrorOccured({
         errorCode: err,
         itemCode: i.id,
@@ -422,14 +402,7 @@ function Checkout({ myCartID }) {
                     )}
                     {data &&
                       data.itemss.map((i) => (
-                        <span
-                          key={i.id}
-                          className="active-background-change"
-                          // onClick={(e) => e.target.blur()}
-                          // onMouseDown={(event) => {
-                          //   event.preventDefault();
-                          // }}
-                        >
+                        <span key={i.id} className="active-background-change">
                           <div className="border rounded-2 mb-2  ps-2 py-2 each-cart-element  ">
                             <div
                               className="row mb-1 row-cols-auto product-cart-tooltip background-unset"
@@ -479,7 +452,7 @@ function Checkout({ myCartID }) {
                               </div>
                               <div className="col px-0 col-xs-2 d-inline background-unset">
                                 <div className="d-flex ">
-                                  <div className="display-only-on-xxs  me-1 ">
+                                  <div className="display-only-on-xxs ms-3 me-1 ">
                                     <span className="min-with-for-quantity">
                                       <small>{i.quantity}</small>
                                     </span>
@@ -549,7 +522,10 @@ function Checkout({ myCartID }) {
                                             event.preventDefault();
                                             itemMinusButtonHandler(i);
                                           }}
-                                          className="btn me-0 btn-danger  background-red"
+                                          className={`btn me-0 btn-danger  background-red  ${
+                                            parseInt(i.quantity) === 1 &&
+                                            "disabled"
+                                          } `}
                                           data-type="minus"
                                         >
                                           <i className="fas fa-minus  more-padding-minus-xxs-co plus-minus-icon-font-size fas-bg-red"></i>
@@ -590,7 +566,10 @@ function Checkout({ myCartID }) {
                                           itemMinusButtonHandler(i);
                                           event.currentTarget.blur();
                                         }}
-                                        className="btn default-butt  me-2 btn-danger revert-active-background-change  "
+                                        className={`btn default-butt  me-2 btn-danger revert-active-background-change   ${
+                                          parseInt(i.quantity) === 1 &&
+                                          "disabled"
+                                        } `}
                                         data-type="minus"
                                       >
                                         <small className="">
@@ -620,7 +599,7 @@ function Checkout({ myCartID }) {
                                         )}
                                     </span>
                                     <span className="">
-                                      <smal className="h3">{i.quantity}</smal>
+                                      <small className="h3">{i.quantity}</small>
                                     </span>
                                     <span className="input-group-btn ">
                                       <button
@@ -674,8 +653,23 @@ function Checkout({ myCartID }) {
                                     <div className="d-flex ms-2  ms-xl-0 h3 justify-content-center">
                                       <small>
                                         <span>Status: </span>
-                                        <span className="text-success">
-                                          <strong>In Stock</strong>
+
+                                        <span
+                                          className={` ${
+                                            i.product.available_quantity < 2
+                                              ? "text-danger"
+                                              : i.product.available_quantity < 4
+                                              ? "text-danger"
+                                              : "text-success"
+                                          }`}
+                                        >
+                                          <strong>
+                                            {i.product.available_quantity < 2
+                                              ? " 1 left!"
+                                              : i.product.available_quantity < 4
+                                              ? "3 left!"
+                                              : "In stock"}
+                                          </strong>
                                         </span>
                                       </small>
                                     </div>
@@ -872,9 +866,10 @@ function Checkout({ myCartID }) {
                       <div className="col"></div>
                     </div>
                     <div className="d-grid gap-4 d-flex justify-content-end">
-                      <h3>Total</h3>
+                      <h3>Total:</h3>
                       <h3>
                         <strong>
+                          $
                           {data
                             ? Number.parseFloat(data.total_price).toFixed(2)
                             : "0"}
@@ -914,7 +909,7 @@ function Checkout({ myCartID }) {
       <section className="py-5">
         <div className="container">
           <div className="row text-left p-2 pb-3">
-            <h4>Related Products</h4>
+            {/* <h4>Related Products</h4> */}
           </div>
         </div>
       </section>

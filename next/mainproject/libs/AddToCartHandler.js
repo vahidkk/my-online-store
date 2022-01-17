@@ -1,10 +1,12 @@
+import { endpoint } from "../utils/constants";
+
 import { useRef, useEffect, useState, useCallback } from "react";
 import useSWR, { mutate, trigger } from "swr";
 import { LoadCartContent } from "./LoadCartContent";
 // export async function AddToCartHandler({ props }, cartID) {
 
 async function fetchPostNewItem(cartID, itemID) {
-  const res = await fetch(`http://127.0.0.1:8000/api/carts/${cartID}/items/`, {
+  const res = await fetch(`${endpoint}/carts/${cartID}/items/`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -15,16 +17,12 @@ async function fetchPostNewItem(cartID, itemID) {
     }),
   });
   const postResponse = await res.json();
-  // console.log("DATA4:", data);
 
-  console.log("POST res.ok?", postResponse);
   if (!res.ok) throw res.statusText;
   return postResponse;
 }
 
 const useAddToCartHandler = (cartID) => {
-  // console.log("props & cartID", props, cartID);
-
   const [errorOccured, setErrorOccured] = useState({
     errorCode: null,
     itemCode: null,
@@ -38,7 +36,6 @@ const useAddToCartHandler = (cartID) => {
   // if (!props) {
   //   return errorOccured;
   // }
-  console.log("DATA1:", data);
   const saveInstanceOfDataBeforeAddToCartClick = data;
   // const cartID = "679fe9ef-d27c-45d2-86f8-db56908048d4";
   const mutateAndFetchAddToCart = async (
@@ -47,13 +44,12 @@ const useAddToCartHandler = (cartID) => {
     usingRandomID = false
   ) => {
     const itemID = props.id;
-    console.log("DATA2:", data);
     setErrorOccured;
 
     try {
       await mutate(
-        // `http://127.0.0.1:8000/api/carts/${data.id}`,
-        `http://127.0.0.1:8000/api/carts/${cartID}`,
+        // `${endpoint}/carts/${data.id}`,
+        `${endpoint}/carts/${cartID}`,
         {
           ...data,
           total_price: (
@@ -92,22 +88,12 @@ const useAddToCartHandler = (cartID) => {
         },
         needsRevalidate ? true : false
       );
-      console.log("DATA3:", data);
       if (cartID) {
-        //       mutateFirstly &&
-        // (await mutate(`http://127.0.0.1:8000/api/carts/${cartID}`));
         const responseOfCreatingNewItem = await fetchPostNewItem(
           cartID,
           itemID
         );
-        // mutate(`http://127.0.0.1:8000/api/carts/${data.id}`);
-        // if (responseOfCreatingNewItem.id !== data.items.id) {
-        // log(
-        //   "cartItemIDForNewItems  old id vs new id :",
-        //   data.items.id,
-        //   responseOfCreatingNewItem.id
-        // );
-        // }
+
         return responseOfCreatingNewItem;
       }
     } catch (err) {
@@ -116,11 +102,9 @@ const useAddToCartHandler = (cartID) => {
         itemCode: props.id,
         actionType: "add",
       });
-      console.log("POST error is : ", err);
-      console.log("POST error is  errorOccured: ", errorOccured);
       mutate(
-        // `http://127.0.0.1:8000/api/carts/${data.id}`,
-        `http://127.0.0.1:8000/api/carts/${cartID}`,
+        // `${endpoint}/carts/${data.id}`,
+        `${endpoint}/carts/${cartID}`,
         { ...saveInstanceOfDataBeforeAddToCartClick },
         true
       );

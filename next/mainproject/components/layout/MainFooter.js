@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function MainFooter() {
   return (
     <>
@@ -6,12 +8,12 @@ export default function MainFooter() {
           <div className="row">
             <div className="col-md-4 pt-5">
               <h2 className="h2 text-success border-bottom pb-3 border-light logo">
-                store Shop
+                STORE
               </h2>
               <ul className="list-unstyled text-light footer-link-list">
                 <li>
                   <i className="fas fa-map-marker-alt fa-fw"></i>
-                  123 Consecteddtur at dsds 10660
+                  123 Conseecteddtur aet dsdes 10660
                 </li>
                 <li>
                   <i className="fa fa-phone fa-fw"></i>
@@ -25,7 +27,7 @@ export default function MainFooter() {
                     className="text-decoration-none"
                     href="mailto:info@company.com"
                   >
-                    info@company.com
+                    info@email.com
                   </a>
                 </li>
               </ul>
@@ -123,28 +125,25 @@ export default function MainFooter() {
                   </a>
                 </li>
                 <li className="list-inline-item border border-light rounded-circle text-center">
-                  <a
-                    className="text-light text-decoration-none"
-                    href="https://www.instagram.com/"
-                  >
-                    <i className="fab fa-instagram fa-lg fa-fw"></i>
-                  </a>
+                  <Link href="#">
+                    <a className="text-light text-decoration-none">
+                      <i className="fab fa-instagram fa-lg fa-fw"></i>
+                    </a>
+                  </Link>
                 </li>
                 <li className="list-inline-item border border-light rounded-circle text-center">
-                  <a
-                    className="text-light text-decoration-none"
-                    href="https://twitter.com/"
-                  >
-                    <i className="fab fa-twitter fa-lg fa-fw"></i>
-                  </a>
+                  <Link href="#">
+                    <a className="text-light text-decoration-none">
+                      <i className="fab fa-twitter fa-lg fa-fw"></i>
+                    </a>
+                  </Link>
                 </li>
                 <li className="list-inline-item border border-light rounded-circle text-center">
-                  <a
-                    className="text-light text-decoration-none"
-                    href="https://www.linkedin.com/"
-                  >
-                    <i className="fab fa-linkedin fa-lg fa-fw"></i>
-                  </a>
+                  <Link href="#">
+                    <a className="text-light text-decoration-none">
+                      <i className="fab fa-linkedin fa-lg fa-fw"></i>
+                    </a>
+                  </Link>
                 </li>
               </ul>
             </div>

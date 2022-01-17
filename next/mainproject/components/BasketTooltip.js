@@ -1,16 +1,19 @@
+import { endpoint } from "../utils/constants";
 import Link from "next/dist/client/link";
 import { useRef, useEffect, useState, useCallback } from "react";
 import { usePopperTooltip } from "react-popper-tooltip";
 import { createContext, useContext } from "react";
 import { FindTheCartID } from "../libs/FindTheCartID";
 import useSWR, { mutate, trigger } from "swr";
-import { useRouter } from "next/router";
+import router, { useRouter } from "next/router";
 import { changeCartID } from "../store/cartID/action";
 import { wrapper } from "../store/store";
 import { connect } from "react-redux";
 import { bindActionCreators } from "redux";
 import { LoadCartContent } from "../libs/LoadCartContent";
 import ShowErrorTooltip from "./ShowErrorTooltip";
+import cart from "../public/green-icons/cart.png";
+import Image from "next/image";
 
 const CloseBoxContext = createContext();
 
@@ -43,8 +46,6 @@ function CartPopper({ myCartID, changeCartID }) {
 // #############################################
 
 function CartContent({ myCartID }) {
-  console.log("just to make sure myCartID:", myCartID);
-
   const initialCartItem = {
     id: "0",
     itemss: [
@@ -57,8 +58,7 @@ function CartContent({ myCartID }) {
           slug: "0",
           product_image: [
             {
-              image:
-                "http://127.0.0.1:8000/media/images/imageseeee_IGQHQ5W.jpg",
+              image: "/Eclipse-1s-211px.svg",
               alt_text: null,
             },
           ],
@@ -98,9 +98,6 @@ function CartContent({ myCartID }) {
     true,
     myCartID
   );
-  data &&
-    mounted &&
-    console.log("here is SWR response ", data, isLoading, isError);
 
   const [deleteState, setDeleteState] = useState({
     order: false,
@@ -115,7 +112,7 @@ function CartContent({ myCartID }) {
     setErrorOccured;
     try {
       mutate(
-        `http://127.0.0.1:8000/api/carts/${data.id}`,
+        `${endpoint}/carts/${data.id}`,
         {
           ...data,
           total_price: (data.total_price - i.total_price).toFixed(2),
@@ -123,20 +120,16 @@ function CartContent({ myCartID }) {
         },
         false
       );
-      const res = await fetch(
-        `http://127.0.0.1:8000/api/carts/${data.id}/items/${i.id}/`,
-        {
-          method: "DELETE",
-        }
-      );
-      console.log("res.ok?", res);
+      const res = await fetch(`${endpoint}/carts/${data.id}/items/${i.id}/`, {
+        method: "DELETE",
+      });
       setDeleteState({ ...deleteState, order: false, done: true });
       setIsSaving(false);
       if (!res.ok) throw res.statusText;
     } catch (err) {
       // if any error, revert the changes:
       mutate(
-        `http://127.0.0.1:8000/api/carts/${data.id}`,
+        `${endpoint}/carts/${data.id}`,
         { ...saveInstanceOfDataBeforeDeletion },
         true
       );
@@ -155,7 +148,8 @@ function CartContent({ myCartID }) {
     setErrorOccured;
     try {
       mutate(
-        `http://127.0.0.1:8000/api/carts/${data.id}`,
+        `${endpoint}/carts/${data.id}`,
+
         {
           ...data,
           total_price: (
@@ -179,34 +173,28 @@ function CartContent({ myCartID }) {
         },
         false
       );
-      console.log("parseInt(i.quantity)", parseInt(i.quantity) + 1);
-      const res = await fetch(
-        `http://127.0.0.1:8000/api/carts/${data.id}/items/${i.id}/`,
-        {
-          method: "PATCH",
+      const res = await fetch(`${endpoint}/carts/${data.id}/items/${i.id}/`, {
+        method: "PATCH",
 
-          headers: {
-            "Content-Type": "application/json",
-          },
+        headers: {
+          "Content-Type": "application/json",
+        },
 
-          body: JSON.stringify({
-            quantity: parseInt(i.quantity) + 1,
-          }),
-        }
-      );
+        body: JSON.stringify({
+          quantity: parseInt(i.quantity) + 1,
+        }),
+      });
       const patchResponse = await res.json();
-      console.log("PATCH res.ok?", patchResponse);
-      // setDeleteState({ ...deleteState, order: false, done: true });
+
       setIsSaving(false);
       if (!res.ok) throw res.statusText;
     } catch (err) {
       // if any error, revert the changes:
       mutate(
-        `http://127.0.0.1:8000/api/carts/${data.id}`,
+        `${endpoint}/carts/${data.id}`,
         { ...saveInstanceOfDataBeforePlusButtonClick },
         true
       );
-      console.log("Oh Snapp:", err);
       setErrorOccured({
         errorCode: err,
         itemCode: i.id,
@@ -222,7 +210,7 @@ function CartContent({ myCartID }) {
     setErrorOccured;
     try {
       mutate(
-        `http://127.0.0.1:8000/api/carts/${data.id}`,
+        `${endpoint}/carts/${data.id}`,
         {
           ...data,
           total_price: (
@@ -246,32 +234,26 @@ function CartContent({ myCartID }) {
         },
         false
       );
-      console.log("parseInt(i.quantity)", parseInt(i.quantity) - 1);
-      const res = await fetch(
-        `http://127.0.0.1:8000/api/carts/${data.id}/items/${i.id}/`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            quantity: parseInt(i.quantity) - 1,
-          }),
-        }
-      );
+      const res = await fetch(`${endpoint}/carts/${data.id}/items/${i.id}/`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          quantity: parseInt(i.quantity) - 1,
+        }),
+      });
       const patchResponse = await res.json();
-      console.log("PATCH res.ok?", patchResponse);
-      // setDeleteState({ ...deleteState, order: false, done: true });
+
       setIsSaving(false);
       if (!res.ok) throw res.statusText;
     } catch (err) {
       // if any error, revert the changes:
       mutate(
-        `http://127.0.0.1:8000/api/carts/${data.id}`,
+        `${endpoint}/carts/${data.id}`,
         { ...saveInstanceOfDataBeforePlusButtonClick },
         true
       );
-      console.log("Oh Snapp:", err);
       setErrorOccured({
         errorCode: err,
         itemCode: i.id,
@@ -449,7 +431,9 @@ function CartContent({ myCartID }) {
                                 event.preventDefault();
                                 itemMinusButtonHandler(i);
                               }}
-                              className="btn me-0 btn-danger  background-red"
+                              className={`btn me-0 btn-danger  background-red ${
+                                parseInt(i.quantity) === 1 && "disabled"
+                              } `}
                               data-type="minus"
                             >
                               <i className="fas fa-minus more-padding-minus-xxs plus-minus-icon-font-size fas-bg-red"></i>
@@ -494,7 +478,9 @@ function CartContent({ myCartID }) {
                             itemMinusButtonHandler(i);
                             event.currentTarget.blur();
                           }}
-                          className="btn me-2 btn-danger  revert-active-background-change  "
+                          className={`btn me-2 btn-danger  revert-active-background-change ${
+                            parseInt(i.quantity) === 1 && "disabled"
+                          } `}
                           data-type="minus"
                         >
                           <small className="">
@@ -519,7 +505,7 @@ function CartContent({ myCartID }) {
                             />
                           )}
                       </span>
-                      <smal className="h3">{i.quantity}</smal>
+                      <small className="h3">{i.quantity}</small>
                       <span className="input-group-btn ">
                         <button
                           type="button"
@@ -565,8 +551,22 @@ function CartContent({ myCartID }) {
                     <div className="child-overflow h3 mt-2 ">
                       <small>
                         <span>Status: </span>
-                        <span className="text-success">
-                          <strong>In Stock</strong>
+                        <span
+                          className={` ${
+                            i.product.available_quantity < 2
+                              ? "text-danger"
+                              : i.product.available_quantity < 4
+                              ? "text-danger"
+                              : "text-success"
+                          }`}
+                        >
+                          <strong>
+                            {i.product.available_quantity < 2
+                              ? " 1 left!"
+                              : i.product.available_quantity < 4
+                              ? "3 left!"
+                              : "In stock"}
+                          </strong>
                         </span>
                       </small>
                     </div>
@@ -748,10 +748,10 @@ function CartContent({ myCartID }) {
           <div className="col"></div>
         </div>
         <div className="d-grid gap-4 d-flex justify-content-end">
-          <h3>Total</h3>
+          <h3>Total:</h3>
           <h3>
             <strong>
-              {data ? Number.parseFloat(data.total_price).toFixed(2) : "0"}
+              ${data ? Number.parseFloat(data.total_price).toFixed(2) : "0"}
             </strong>
           </h3>
         </div>
@@ -770,6 +770,16 @@ function CartContent({ myCartID }) {
           </button>
           <button
             type="button"
+            onClick={(event) => {
+              closeBoxUseContext.setContinueShoppingCloseBox(false);
+              event.preventDefault();
+              router.push("/checkout");
+            }}
+            onTouchEnd={(event) => {
+              closeBoxUseContext.setContinueShoppingCloseBox(false);
+              event.preventDefault();
+              router.push("/checkout");
+            }}
             className={
               isLoading || !data || data.itemss.length < 1
                 ? "btn ms-2 btn-success btn-sm disabled"
@@ -833,10 +843,17 @@ export function CartTooltip2({ myCartID }) {
   return (
     <div className="App">
       <span type="button" ref={setTriggerRef}>
-        <i
+        {/* <i
           key="fa1"
           className="fa fa-fw fa-cart-arrow-down text-dark mr-1  px-md-3 mt-1"
-        ></i>
+        ></i> */}
+        <Image
+          src={cart}
+          alt={"cart"}
+          width={30}
+          height={30}
+          // layout="responsive"
+        />
         <span className="position-absolute top-0 left-100 translate-middle badge rounded-pill bg-light text-dark">
           {cartLength}
         </span>

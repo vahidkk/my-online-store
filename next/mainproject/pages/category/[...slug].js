@@ -1,3 +1,4 @@
+import { endpoint } from "../../utils/constants";
 import Link from "next/link";
 import Image from "next/image";
 import { useRef, useState, useEffect } from "react";
@@ -9,6 +10,9 @@ import { changePageSize } from "../../store/pagesize/action";
 import { changeOrdering } from "../../store/ordering/action";
 import { CartManager } from "../../libs/CartManager";
 import { Range, getTrackBackground, useThumbOverlap } from "react-range";
+import addToCartIcon from "../../public/green-icons/add-to-cart.png";
+
+// import { Tooltip, Dropdown } from "bootstrap";
 
 import TreeMenu, {
   defaultChildren,
@@ -29,7 +33,6 @@ function Home({
   ordering,
   changeOrdering,
   myCartID,
-  uaString,
 }) {
   const router = useRouter();
   // if (router.isFallback) {
@@ -68,16 +71,6 @@ function Home({
   });
   const timerRef = useRef(null);
 
-  useEffect(() => {
-    // const temp = CartManager();
-    // setPriceRange({
-    //   values: [
-    //     posts.results[0].category.price_range.min_price,
-    //     posts.results[0].category.price_range.max_price,
-    //   ],
-    // });
-    // }, [posts]);
-  }, []);
   const [addThisItemToCart, setAddThisItemToCart] = useState(null);
   const [mutateAndFetchAddToCart, errorOccured] = useAddToCartHandler(myCartID);
   const addToCartClickHandler = (post) => {
@@ -88,7 +81,6 @@ function Home({
     isLoading,
     isError,
   } = LoadCartContent(true, myCartID);
-  console.log("cart items on slug page:", cartData);
   const handleRouteChange = (
     e,
     pagenumberReset = false,
@@ -126,7 +118,6 @@ function Home({
         slug,
         ...rest
       }) => rest;
-      console.log("cleanurl:", cleanPriceFilteredURL(router.query));
 
       router.push(
         {
@@ -165,12 +156,7 @@ function Home({
     return result;
   };
   const currentPageLabel = currentCategoryBasedOnURL.name;
-  //  pathToPageTitle(
-  //   treeFeedObj,
-  //   router.query.slug.join("/")
-  // )
-  //   .split("/")
-  //   .slice(-1)[0];
+
   // this will return the last member of lables which is current page's category title to be used on Head
   const pathToSlash = (array, target) => {
     // Slash separated ancestor categories to use on TreeMenu
@@ -205,34 +191,60 @@ function Home({
   const singleProductLinkHandler = (link) => {
     router.push("../product/" + link);
   };
+  // const drdRef = useRef();
+
+  useEffect(() => {
+    if (typeof document !== undefined) {
+      const { Dropdown } = require("bootstrap");
+    }
+    // let drd = new Dropdown(drdRef.current, {});
+  }, []);
+  function chosenPageSize(event) {
+    posts.next == null
+      ? parseInt(event.target.dataset.value) > parseInt(pagesize)
+        ? handleRouteChange(event.target.dataset.value, true)
+        : handleRouteChange(event.target.dataset.value)
+      : handleRouteChange(event.target.dataset.value);
+    changePageSize(event);
+  }
+  function chosenSort(event) {
+    handleRouteChange(event.target.dataset.value, false, "ordering");
+    changeOrdering(event);
+  }
+
   return (
     <>
       <Head>
         <title>{currentPageLabel}</title>
       </Head>
-      <div className="container py-5">
+      <div className="container p-5 ">
         <div className="row">
-          <div className="col-lg-3">
+          <div className="col-sm-4 col-md-3">
             <h1 className="h2 pb-4">Categories</h1>
             <TreeMenu
               data={treeDataCategoryFeed}
               // initialActiveKey={pathToSlash(treeFeedObj, router.query.slug)}
               initialActiveKey={currentCategoryBasedOnURL.url}
               initialOpenNodes={initialOpens}
-              onClickItem={({ key, label, ...props }) =>
-                router.push({ pathname: props.url }, undefined, {
-                  shallow: false,
-                })
-              }
+              onClickItem={({ key, label, ...props }) => {
+                router.query.slug && delete router.query.slug;
+                router.push(
+                  { pathname: props.url, query: router.query },
+                  undefined,
+                  {
+                    shallow: false,
+                  }
+                );
+              }}
             >
               {({ search, items }) => (
                 <>
                   <input
-                    className="rstm-search"
+                    className="rstm-search fs-6 ps-sm-1 ps-md-2 ps-lg-3 ps-xl-4 "
                     onChange={(e) => search(e.target.value)}
                     placeholder="Search categories"
                   />
-                  <ul className="rstm-tree-item-group">
+                  <ul className="rstm-tree-item-group ">
                     {items.map(({ key, ...props }) => (
                       <div key={key}>
                         <ItemComponent key={key} {...props} />
@@ -244,39 +256,9 @@ function Home({
             </TreeMenu>
           </div>
 
-          <div className="col-lg-9">
+          <div className="col-sm-8 col-md-9">
             <div className="row">
               <div className="col-md-6">
-                {/* <ul className="list-inline shop-top-menu pb-3 pt-1">
-                  <li key="link1" className="list-inline-item">
-                    <a
-                      className="h3 text-dark text-decoration-none mr-3"
-                      href="#"
-                    >
-                      Cat link1
-                    </a>
-                  </li>
-                  <li key="link2" className="list-inline-item">
-                    <a
-                      className="h3 text-dark text-decoration-none mr-3"
-                      href="#"
-                    >
-                      Cat link2
-                    </a>
-                  </li>
-                  <li key="link3" className="list-inline-item">
-                    <a className="h3 text-dark text-decoration-none" href="#">
-                      Cat link3
-                    </a>
-                  </li>
-                </ul> */}
-                {/* {console.log(
-                  "posts.results[0].category.price_range.max_price:",
-                  posts.results[0].category.price_range.max_price
-                )}
-                {console.log("priceRange.value", priceRange.value)} */}
-
-                {/* #$%^#$%^&^%$#$%^&%$#%^& */}
                 <Range
                   step={0.01}
                   min={currentCategoryBasedOnURL.price_range.min_price}
@@ -312,7 +294,7 @@ function Home({
                             max: currentCategoryBasedOnURL.price_range
                               .max_price,
                             values: priceRange.values,
-                            colors: ["#ccc", "#548BF4", "#ccc"],
+                            colors: ["#ccc", "#59AB6E", "#ccc"],
                           }),
                           alignSelf: "center",
                         }}
@@ -347,7 +329,7 @@ function Home({
                             "Arial,Helvetica Neue,Helvetica,sans-serif",
                           padding: "4px",
                           borderRadius: "4px",
-                          backgroundColor: "#548BF4",
+                          backgroundColor: "#59AB6E",
                         }}
                       >
                         {
@@ -360,7 +342,7 @@ function Home({
                         style={{
                           height: "16px",
                           width: "5px",
-                          backgroundColor: isDragged ? "#548BF4" : "#CCC",
+                          backgroundColor: isDragged ? "#59AB6E" : "#CCC",
                         }}
                       />
                     </div>
@@ -368,60 +350,124 @@ function Home({
                 />
               </div>
               <div className="col-md-6 pb-4">
-                <div className="d-flex ">
-                  <button label="click ME!" onClick={CartManager} />
-                  {priceRange.min}
-                  {pagesize}
-                  {console.log("pagesize=", pagesize)}
-                  <select
-                    className="form-control"
-                    name="option"
-                    defaultValue={pagesize}
-                    onChange={(event) => {
-                      posts.next == null
-                        ? parseInt(event.target.value) > parseInt(pagesize)
-                          ? handleRouteChange(event.target.value, true)
-                          : handleRouteChange(event.target.value)
-                        : handleRouteChange(event.target.value);
-                      changePageSize(event);
-                    }}
-                  >
-                    <option value="6">Items in page: 6 </option>
-                    <option value="12">Items in page: 12</option>
-                    <option value="18">Items in page: 18</option>
-                    <option value="24">Items in page: 24</option>
-                  </select>
-                  {/* <ChangePageSize /> */}
-                  {/* value={reduxCurrentPageSize}
-                  <select
-                    className="form-control"
-                    name="option"
-                    defaultValue={reduxCurrentPageSize}
-                    onChange={(e) => dispatch(pageSizeAction(e.target.value))}
-                  >
-                    <option value="6">Items in page: 6 </option>
-                    <option value="12">Items in page: 12</option>
-                    <option value="18">Items in page: 18</option>
-                    <option value="24">Items in page: 24</option>
-                  </select> */}
-                  V={ordering}
-                  <select
-                    className="form-control"
-                    defaultValue={ordering}
-                    onChange={(event) => {
-                      handleRouteChange(event.target.value, false, "ordering");
-                      changeOrdering(event);
-                    }}
-                  >
-                    <option value="-regular_price">
-                      Sort by price (high to low)
-                    </option>
-                    <option value="regular_price">
-                      Sort by price (low to high)
-                    </option>
-                    <option value="updated_at">Sort by newest</option>
-                    <option value="-updated_at">Sort by oldest</option>
-                  </select>
+                <div className="d-flex justify-content-end ">
+                  <div className="btn-group me-2">
+                    <button
+                      className="btn btn-success btn-sm"
+                      type="button"
+                      style={{ cursor: "unset" }}
+                    >
+                      Items in page:
+                      {router.query.page_size
+                        ? " " + router.query.page_size
+                        : " 6"}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-success dropdown-toggle dropdown-toggle-split"
+                      data-bs-toggle="dropdown"
+                      aria-expanded="false"
+                    >
+                      <span className="visually-hidden">Items in page:</span>
+                    </button>
+
+                    <ul
+                      className="dropdown-menu"
+                      style={{ cursor: "pointer" }}
+                      aria-labelledby="dropdownMenuButton1"
+                    >
+                      <li
+                        onClick={chosenPageSize}
+                        className="dropdown-item"
+                        data-value={6}
+                      >
+                        6
+                      </li>
+                      <li
+                        onClick={chosenPageSize}
+                        className="dropdown-item"
+                        data-value={12}
+                      >
+                        12
+                      </li>
+                      <li
+                        className="dropdown-item"
+                        onClick={chosenPageSize}
+                        data-value={18}
+                      >
+                        18
+                      </li>
+                      <li
+                        className="dropdown-item"
+                        onClick={chosenPageSize}
+                        data-value={24}
+                      >
+                        24
+                      </li>
+                    </ul>
+                  </div>
+                  <div className="btn-group">
+                    <button
+                      className="btn btn-success btn-sm"
+                      type="button"
+                      style={{ cursor: "unset" }}
+                    >
+                      Sort by:
+                      {!router.query.ordering ||
+                      router.query.ordering === "updated_at"
+                        ? " date (newest)"
+                        : router.query.ordering === "-updated_at"
+                        ? " date (oldest)"
+                        : router.query.ordering === "-regular_price"
+                        ? " price (high to low)"
+                        : router.query.ordering === "regular_price" &&
+                          " price (low to high)"}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-success dropdown-toggle dropdown-toggle-split"
+                      data-bs-toggle="dropdown"
+                      aria-expanded="false"
+                    >
+                      <span className="visually-hidden">Sort by:</span>
+                    </button>
+
+                    <ul
+                      className="dropdown-menu"
+                      style={{ cursor: "pointer" }}
+                      aria-labelledby="dropdownMenuButton1"
+                    >
+                      {" "}
+                      <li
+                        onClick={chosenSort}
+                        className="dropdown-item"
+                        data-value={"-regular_price"}
+                      >
+                        price (high to low)
+                      </li>
+                      <li
+                        onClick={chosenSort}
+                        className="dropdown-item"
+                        data-value={"regular_price"}
+                      >
+                        price (low to high)
+                      </li>
+                      <li
+                        onClick={chosenSort}
+                        className="dropdown-item"
+                        data-value={"updated_at"}
+                      >
+                        date newest
+                      </li>
+                      <li
+                        onClick={chosenSort}
+                        className="dropdown-item"
+                        data-value={"-updated_at"}
+                      >
+                        date oldest
+                      </li>
+                    </ul>
+                  </div>
                 </div>
               </div>
             </div>
@@ -442,19 +488,8 @@ function Home({
                 posts.results.map((post) => (
                   <div key={post.id} className="col-md-4">
                     <div className="card mb-4 product-wap rounded-0">
-                      {/* <Link
-                        href={{
-                          pathname: "/product/" + post.slug,
-                          // query: router.query ,
-                        }}
-                      > */}
                       <div
                         className="card results.rounded-0"
-                        // onClick={singleProductLinkHandler}
-
-                        // onTouchStart={(e) => e.preventDefault()}
-                        //decide wheter show ontouchEnd or not :
-                        // {...(canClick && { onClick: this.handler })}
                         {...(showHoverOnTouch.id !== post.id && {
                           onTouchEnd: (e) => {
                             e.preventDefault();
@@ -473,73 +508,18 @@ function Home({
                           },
                         })}
                       >
-                        {/* <div className=" bg-primary rounded-0 product-overlay d-flex align-items-end justify-content-start">
-                          www
-                        </div> */}
-                        {/* <img
-                          className="card-img rounded-0 img-fluid"
-                          src={post.product_image[0].image}
-                          alt={post.product_image[0].alt_text}
-                        /> */}
-
-                        {/* {!imageisLoaded && (
-                          <>
-                            {console.log(
-                              "FFFFFFFFFFFFFFFFAAAAAAAAAAAAAALLLLLLLLLLLLLSSSSSSSSSSSEEE"
-                            )}
-                            <div className="card-placeholder">
-                              <div className="card-placeholder-image">
-                                <div className="load-wraper">
-                                  <div className="activity"></div>
-                                </div>
-                              </div>
-                              <div className="card-placeholder-content">
-                                <div className="card-placeholder-text">
-                                  <div className="load-wraper">
-                                    <div className="activity"></div>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-
-                            <div className="card-placeholder">
-                              <div className="card-placeholder-image">
-                                <div className="load-wraper">
-                                  <div className="activity"></div>
-                                </div>
-                              </div>
-                              <div className="card-placeholder-content">
-                                <div className="card-placeholder-avatar">
-                                  <div className="load-wraper circular">
-                                    <div className="activity"></div>
-                                  </div>
-                                </div>
-                                <div className="card-placeholder-avatar-text">
-                                  <div className="load-wraper">
-                                    <div className="activity"></div>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          </>
-                        )} */}
-
-                        <Image
-                          src={post.product_image[0].image}
-                          alt={post.product_image[0].alt_text}
-                          onLoad={() => setImageIsLoaded(true)}
-                          width={300}
-                          height={300}
-                          placeholder="blur"
-                          blurDataURL="/Eclipse-1s-211px.svg"
-                        />
-                        {/* 
-                        <div className="d-flex  bg-primary   p-2 bd-highlight">
-                          {showHoverOnTouch.id === post.id &&
-                          showHoverOnTouch.boolean
-                            ? "true"
-                            : "false"}
-                        </div> */}
+                        <div>
+                          <Image
+                            src={post.product_image[0].image}
+                            alt={post.product_image[0].alt_text}
+                            onLoad={() => setImageIsLoaded(true)}
+                            width={300}
+                            height={300}
+                            layout="responsive"
+                            placeholder="blur"
+                            blurDataURL="/Eclipse-1s-211px.svg"
+                          />
+                        </div>
                         <div
                           className={`d-flex   p-2 bd-highlight ${
                             post.available_quantity < 2
@@ -564,17 +544,13 @@ function Home({
                           }
                         >
                           <div className="container  ">
-                            <div className="row  ">
+                            <div className="row">
                               <div
-                                // className="d-flex bg-success make-it-absolute align-items-stretch"
                                 {...(showHoverOnTouch.id !== post.id &&
                                   !showHoverOnTouch.boolean && {
                                     onClick: () =>
                                       singleProductLinkHandler(post.slug),
-                                    // className:
-                                    //   "d-flex bg-success make-it-absolute align-items-stretch",
                                     className: " make-it-absolute",
-                                    // "d-flex d-flex flex-column flex-grow flex-fill bg-info",
                                   })}
                                 onTouchEnd={(e) => e.preventDefault()}
                               ></div>
@@ -605,8 +581,7 @@ function Home({
                                           parseInt(post.id)
                                       ).length > 0 ? (
                                         <>
-                                          {/* <i className="fas fa-shopping-cart"></i> */}
-                                          <a className="nav-icon position-relative text-decoration-none text-white ">
+                                          <span className="nav-icon position-relative text-decoration-none text-white ">
                                             <i className="fa fa-fw fa-shopping-cart  mr-1  px-md-0  "></i>
                                             <small>
                                               <span className="position-absolute top-0 left-100 translate-middle badge rounded-pill bg-white-transparent  text-dark mt-1">
@@ -619,12 +594,12 @@ function Home({
                                                 }
                                               </span>
                                             </small>
-                                          </a>
+                                          </span>
                                         </>
                                       ) : (
-                                        <a className="nav-icon position-relative text-decoration-none text-white ">
+                                        <span className="nav-icon position-relative text-decoration-none text-white ">
                                           <i className="fas fa-cart-plus  fa-fw  "></i>
-                                        </a>
+                                        </span>
                                       )}
                                     </a>
                                   </li>
@@ -644,7 +619,6 @@ function Home({
                           </div>
                         </div>
                       </div>
-                      {/* </Link> */}
                       <div className="results.card-body">
                         <Link
                           href={{
@@ -657,10 +631,11 @@ function Home({
                             {post.title}
                           </a>
                         </Link>
-                        <ul className="w-100 list-unstyled d-flex justify-content-between mb-0">
-                          <li>
-                            <b>Free Delivery</b>
-                          </li>
+                        <p className="text-left ps-1 mb-0">
+                          <b>$ {post.regular_price}</b>
+                        </p>
+                        <ul className="w-100 list-unstyled d-flex justify-content-between mb-0 ps-1">
+                          <li>Free Delivery</li>
                           <li className="pt-2">
                             <span className="product-color-dot color-dot-red float-left rounded-circle ml-1"></span>
                             <span className="product-color-dot color-dot-blue float-left rounded-circle ml-1"></span>
@@ -669,7 +644,7 @@ function Home({
                             <span className="product-color-dot color-dot-green float-left rounded-circle ml-1"></span>
                           </li>
                         </ul>
-                        <ul className="list-unstyled d-flex justify-content-center mb-1">
+                        <ul className="list-unstyled d-flex justify-content-start mb-1">
                           <li>
                             <i className="text-warning fa fa-star"></i>
                             <i className="text-warning fa fa-star"></i>
@@ -678,9 +653,6 @@ function Home({
                             <i className="text-muted fa fa-star"></i>
                           </li>
                         </ul>
-                        <p className="text-center mb-0">
-                          $ :{post.regular_price}
-                        </p>
                       </div>
                     </div>
                   </div>
@@ -775,14 +747,8 @@ function Home({
 
 export const getServerSideProps = wrapper.getServerSideProps(
   (store) => async (context) => {
-    console.log("storee", store);
     let newResolvedUrl = "";
-    console.log(
-      context.resolvedUrl
-        .replace("?", "&")
-        .split("&")
-        .filter((a) => !a.includes("slug="))
-    );
+
     context.resolvedUrl
       .replace("?", "&")
       .split("&")
@@ -799,15 +765,13 @@ export const getServerSideProps = wrapper.getServerSideProps(
         }
       });
 
-    const res1 = await fetch(`http://127.0.0.1:8000/api${newResolvedUrl}`);
+    const res1 = await fetch(`${endpoint}${newResolvedUrl}`);
+
     const errorCode = res1.ok ? false : res1.status;
-    console.log("res1.status:", res1.status);
     const posts = await res1.json();
-    const res2 = await fetch(
-      "http://127.0.0.1:8000/api/tree-data-category-feed/"
-    );
+    const res2 = await fetch(endpoint + "/tree-data-category-feed/");
     const treeDataCategoryFeed = await res2.json();
-    const res3 = await fetch("http://127.0.0.1:8000/api/category/");
+    const res3 = await fetch(endpoint + "/category/");
     const categories = await res3.json();
 
     return {
@@ -830,11 +794,11 @@ const mapStateToProps = (state) => ({
 const mapDispatchToProps = (dispatch) => {
   return {
     changePageSize: bindActionCreators(
-      (event) => changePageSize(event.target.value),
+      (event) => changePageSize(event.target.dataset.value),
       dispatch
     ),
     changeOrdering: bindActionCreators(
-      (event) => changeOrdering(event.target.value),
+      (event) => changeOrdering(event.target.dataset.value),
       dispatch
     ),
   };
