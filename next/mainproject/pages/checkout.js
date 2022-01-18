@@ -318,12 +318,12 @@ function Checkout({ myCartID }) {
                     A RA# may be obtained by emailing email@email.com . Orders
                     returned without a valid RA# will not be eligible for refund
                     and sender assumes risk of lost goods and/or may incur a
-                    restocking fee. A restocking fee may be charged for special
-                    ordered items. The restocking fee will be determined at the
-                    time of Return Authorization and finalized upon the return
-                    of product. Any customer damaged, previously installed, or
-                    otherwise used items (including original manufacturer
-                    packaging) are not eligible for return.
+                    restocking fee. A restocking fee also may be charged for
+                    special ordered items. The restocking fee will be determined
+                    at the time of Return Authorization and finalized upon the
+                    return of product. Any customer damaged, previously
+                    installed, or otherwise used items (including original
+                    manufacturer packaging) are not eligible for return.
                   </small>
                   <br />
                   <br />
