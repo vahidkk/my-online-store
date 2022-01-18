@@ -279,7 +279,10 @@ function CartContent({ myCartID }) {
   });
   return (
     <>
-      <div className="cart-scroll container   cart-box  ">
+      <div
+        className="cart-scroll container   cart-box  "
+        style={{ zIndex: "9999999" }}
+      >
         {isLoading ? (
           <div className="d-flex justify-content-center">
             <div className="spinner-border m-5" role="status">
