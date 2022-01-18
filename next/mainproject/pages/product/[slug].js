@@ -1,5 +1,5 @@
 import { endpoint } from "../../utils/constants";
-
+import Image from "next/image";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import Link from "next/dist/client/link";
@@ -73,6 +73,8 @@ function Product({ post, categories, myCartID }) {
     itemCode: null,
     actionType: null,
   });
+  const [imageisLoaded, setImageIsLoaded] = useState(false);
+
   // const [mutateAndFetchAddToCart, errorOccured] = useAddToCartHandler(myCartID);
   const [mutateAndFetchAddToCart, errorOccuredOnAddToCart] =
     useAddToCartHandler(myCartID);
@@ -337,12 +339,25 @@ function Product({ post, categories, myCartID }) {
             <div className="col-lg-5 mt-5">
               <div className="card mb-3">
                 {/* THIS IS THE DEFAULT PHOTO : */}
-                <img
+                <Image
                   className="card-img img-fluid"
                   src={currentImage.src}
                   alt={currentImage.alt}
                   id="product-detail"
+                  onLoad={() => setImageIsLoaded(true)}
+                  width={600}
+                  height={600}
+                  layout="responsive"
+                  placeholder="blur"
+                  blurDataURL="/Eclipse-1s-211px.svg"
                 />
+
+                {/* <img
+                  className="card-img img-fluid"
+                  src={currentImage.src}
+                  alt={currentImage.alt}
+                  id="product-detail"
+                /> */}
               </div>
               <div className="row">
                 {/* --Start Controls */}
@@ -371,7 +386,7 @@ function Product({ post, categories, myCartID }) {
                           (c, index) =>
                             index < 3 && (
                               <div className="col-4" key={c.image}>
-                                <img
+                                <Image
                                   onClick={() => {
                                     setCurrentImage({
                                       src: c.image,
@@ -382,7 +397,24 @@ function Product({ post, categories, myCartID }) {
                                   src={c.image}
                                   alt={c.alt_text}
                                   style={{ cursor: "pointer" }}
+                                  width={200}
+                                  height={200}
+                                  layout="responsive"
+                                  placeholder="blur"
+                                  blurDataURL="/Eclipse-1s-211px.svg"
                                 />
+                                {/* <img
+                                  onClick={() => {
+                                    setCurrentImage({
+                                      src: c.image,
+                                      alt: c.alt_text,
+                                    });
+                                  }}
+                                  className="card-img img-fluid"
+                                  src={c.image}
+                                  alt={c.alt_text}
+                                  style={{ cursor: "pointer" }}
+                                /> */}
                               </div>
                             )
                         )}
@@ -399,7 +431,7 @@ function Product({ post, categories, myCartID }) {
                               index >= 3 &&
                               index < 6 && (
                                 <div className="col-4 " key={c.image}>
-                                  <img
+                                  <Image
                                     onClick={() => {
                                       setCurrentImage({
                                         src: c.image,
@@ -410,6 +442,11 @@ function Product({ post, categories, myCartID }) {
                                     src={c.image}
                                     alt={c.alt_text}
                                     style={{ cursor: "pointer" }}
+                                    width={200}
+                                    height={200}
+                                    layout="responsive"
+                                    placeholder="blur"
+                                    blurDataURL="/Eclipse-1s-211px.svg"
                                   />
                                 </div>
                               )
@@ -428,7 +465,7 @@ function Product({ post, categories, myCartID }) {
                               index >= 6 &&
                               index < 9 && (
                                 <div className="col-4" key={c.image}>
-                                  <img
+                                  <Image
                                     onClick={() => {
                                       setCurrentImage({
                                         src: c.image,
@@ -439,6 +476,11 @@ function Product({ post, categories, myCartID }) {
                                     src={c.image}
                                     alt={c.alt_text}
                                     style={{ cursor: "pointer" }}
+                                    width={200}
+                                    height={200}
+                                    layout="responsive"
+                                    placeholder="blur"
+                                    blurDataURL="/Eclipse-1s-211px.svg"
                                   />
                                 </div>
                               )

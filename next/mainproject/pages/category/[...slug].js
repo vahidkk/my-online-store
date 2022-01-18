@@ -22,6 +22,7 @@ import Head from "next/head";
 // import { LoadCartContent } from "../../components/muhsin";
 import { LoadCartContent } from "../../libs/LoadCartContent";
 import useAddToCartHandler from "../../libs/AddToCartHandler";
+import { route } from "next/dist/server/router";
 
 function Home({
   posts,
@@ -43,20 +44,27 @@ function Home({
   const THUMB_SIZE_HEIGHT = 29;
   const THUMB_SIZE_WIDTH = 21;
   // START OF RANGE SLIDER CALC : ###############################################################################
-  const currentCategoryBasedOnURL = categories.filter((obj) =>
-    obj.paths > 1
-      ? obj.paths.join()
-      : obj.paths[0] ===
-        (router.query.slug.length > 1 && Array.isArray(router.query.slug))
-      ? router.query.slug.join()
-      : Array.isArray(router.query.slug)
-      ? router.query.slug[0]
-      : router.query.slug
+  // const currentCategoryBasedOnURL = categories.filter((obj) =>
+  //   obj.paths > 1
+  //     ? obj.paths.join()
+  //     : obj.paths[0] ===
+  //       (router.query.slug.length > 1 && Array.isArray(router.query.slug))
+  //     ? router.query.slug.join()
+  //     : Array.isArray(router.query.slug)
+  //     ? router.query.slug[0]
+  //     : router.query.slug
+  // )[0];
+  const currentCategoryBasedOnURL = categories.filter(
+    (x) =>
+      // x.paths.slice().sort().join(",") ===
+      // router.query.slug.slice().sort().join(",")
+      x.paths.toString() === router.query.slug.toString()
   )[0];
-
-  currentCategoryBasedOnURL.price_range.min_price ===
-    currentCategoryBasedOnURL.price_range.max_price &&
-    currentCategoryBasedOnURL.price_range.max_price++;
+  console.log(router.query.slug);
+  console.log(currentCategoryBasedOnURL);
+  // currentCategoryBasedOnURL.price_range.min_price ===
+  //   currentCategoryBasedOnURL.price_range.max_price &&
+  //   currentCategoryBasedOnURL.price_range.max_price++;
 
   const [priceRange, setPriceRange] = useState({
     values: [
@@ -65,6 +73,17 @@ function Home({
     ],
     isDragging: false,
   });
+  useEffect(() => {
+    !router.query.regular_price__gte &&
+      !router.query.regular_price__lte &&
+      setPriceRange({
+        values: [
+          currentCategoryBasedOnURL.price_range.min_price,
+          currentCategoryBasedOnURL.price_range.max_price,
+        ],
+        isDragging: false,
+      });
+  }, [posts]);
   const [showHoverOnTouch, setShowHoverOnTouch] = useState({
     boolean: false,
     id: null,
@@ -228,6 +247,10 @@ function Home({
               initialOpenNodes={initialOpens}
               onClickItem={({ key, label, ...props }) => {
                 router.query.slug && delete router.query.slug;
+                router.query.regular_price__lte &&
+                  delete router.query.regular_price__lte;
+                router.query.regular_price__gte &&
+                  delete router.query.regular_price__gte;
                 router.push(
                   { pathname: props.url, query: router.query },
                   undefined,
@@ -676,51 +699,56 @@ function Home({
                     </Link>
                   </li>
                 )}
-                {totalNumberOfPages.map((n, paginationPageNumber) => (
-                  <div key={paginationPageNumber}>
-                    {pageNumber == paginationPageNumber + 1 ? (
-                      <li
-                        key={paginationPageNumber + 1}
-                        className="page-item disabled"
-                      >
-                        <Link
-                          href={{
-                            // pathname: ,
-                            query: { ...router.query },
-                          }}
-                          passHref
+                {posts &&
+                  posts.count > 0 &&
+                  totalNumberOfPages.map((n, paginationPageNumber) => (
+                    <div key={paginationPageNumber}>
+                      {pageNumber == paginationPageNumber + 1 ? (
+                        <li
+                          key={paginationPageNumber + 1}
+                          className="page-item disabled"
                         >
-                          <a
-                            className="page-link active rounded-0 mr-3 shadow-sm border-top-0 border-left-0 responsivepagination"
-                            tabIndex="-1"
+                          <Link
+                            href={{
+                              // pathname: ,
+                              query: { ...router.query },
+                            }}
+                            passHref
                           >
-                            {paginationPageNumber + 1}
-                          </a>
-                        </Link>
-                      </li>
-                    ) : (
-                      <li key={paginationPageNumber + 1} className="page-item">
-                        <Link
-                          href={{
-                            // pathname: ,
-                            query: {
-                              ...router.query,
-                              p: paginationPageNumber + 1,
-                            },
-                          }}
-                          passHref
+                            <a
+                              className="page-link active rounded-0 mr-3 shadow-sm border-top-0 border-left-0 responsivepagination"
+                              tabIndex="-1"
+                            >
+                              {paginationPageNumber + 1}
+                            </a>
+                          </Link>
+                        </li>
+                      ) : (
+                        <li
+                          key={paginationPageNumber + 1}
+                          className="page-item"
                         >
-                          <a
-                            className="page-link rounded-0 mr-3 shadow-sm border-top-0 border-left-0 text-dark responsivepagination"
-                            tabIndex="-1"
+                          <Link
+                            href={{
+                              // pathname: ,
+                              query: {
+                                ...router.query,
+                                p: paginationPageNumber + 1,
+                              },
+                            }}
+                            passHref
                           >
-                            {paginationPageNumber + 1}
-                          </a>
-                        </Link>
-                      </li>
-                    )}
-                  </div>
-                ))}
+                            <a
+                              className="page-link rounded-0 mr-3 shadow-sm border-top-0 border-left-0 text-dark responsivepagination"
+                              tabIndex="-1"
+                            >
+                              {paginationPageNumber + 1}
+                            </a>
+                          </Link>
+                        </li>
+                      )}
+                    </div>
+                  ))}
                 {posts.next && (
                   <li className="page-item">
                     <Link
