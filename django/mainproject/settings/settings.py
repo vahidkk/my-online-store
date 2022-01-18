@@ -37,13 +37,14 @@ else:
 #     ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS")
 # else:
 
-ALLOWED_HOSTS = [
-    "ancient-temple-08846.herokuapp.com",
-    "127.0.0.1",
-    "127.0.0.1:8000",
-    "localhost:3000",
-    "localhost",
-]
+ALLOWED_HOSTS = ["*"]
+# ALLOWED_HOSTS = [
+#     "ancient-temple-08846.herokuapp.com",
+#     "127.0.0.1",
+#     "127.0.0.1:8000",
+#     "localhost:3000",
+#     "localhost",
+# ]
 
 #  env("ALLOWED_HOSTS").split(",")
 
