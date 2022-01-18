@@ -817,6 +817,7 @@ export function CartTooltip2({ myCartID }) {
     followCursor: false,
     visible: closeBoxUseContext.continueShoppingCloseBox,
     onVisibleChange: setMountedOnceVisible,
+    interactive: true,
   });
 
   function setMountedOnceVisible(visible) {
